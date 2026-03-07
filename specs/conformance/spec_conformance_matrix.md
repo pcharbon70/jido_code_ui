@@ -13,3 +13,9 @@ This matrix maps requirement families to owning contracts and canonical baseline
 ## Acceptance Mapping Rule
 
 Every future AC-bearing component spec MUST map to at least one `REQ-*` family and one `SCN-*` scenario.
+
+## Component AC Coverage
+
+| Component Spec | AC Scope | Requirement Families | Scenario Coverage |
+|---|---|---|---|
+| `specs/operations/rfc_intake_governance.md` | `AC-*` | `REQ-CP-*`, `REQ-OBS-*` | `SCN-001`, `SCN-006` |
