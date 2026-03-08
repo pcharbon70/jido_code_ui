@@ -18,4 +18,8 @@ Every future AC-bearing component spec MUST map to at least one `REQ-*` family a
 
 | Component Spec | AC Scope | Requirement Families | Scenario Coverage |
 |---|---|---|---|
+| `specs/core/ui_application.md` | `AC-*` | `REQ-CP-*`, `REQ-SVC-*`, `REQ-OBS-*` | `SCN-001`, `SCN-003`, `SCN-004`, `SCN-005` |
+| `specs/infrastructure/ui_runtime_substrate.md` | `AC-*` | `REQ-CP-*`, `REQ-SVC-*`, `REQ-DATA-*` | `SCN-001`, `SCN-002`, `SCN-003`, `SCN-008` |
+| `specs/services/ui_orchestrator_service.md` | `AC-*` | `REQ-SVC-*`, `REQ-SEC-*`, `REQ-OBS-*` | `SCN-002`, `SCN-004`, `SCN-005`, `SCN-006`, `SCN-007` |
+| `specs/session/ui_session_runtime_agent.md` | `AC-*` | `REQ-CP-*`, `REQ-SVC-*`, `REQ-DATA-*` | `SCN-001`, `SCN-003`, `SCN-004`, `SCN-008` |
 | `specs/operations/rfc_intake_governance.md` | `AC-*` | `REQ-CP-*`, `REQ-OBS-*` | `SCN-001`, `SCN-006` |
