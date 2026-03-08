@@ -78,6 +78,44 @@ Expected change policy:
 
 - [planning/README.md](planning/README.md)
 
+## Governance Validation
+
+Run the docs governance gate locally:
+
+```bash
+./scripts/validate_specs_governance.sh
+```
+
+Run the executable conformance harness locally:
+
+```bash
+./scripts/run_conformance.sh
+```
+
+or:
+
+```bash
+mix conformance
+```
+
+CI runs the same checks in:
+
+- `.github/workflows/specs-governance.yml`
+- `.github/workflows/conformance.yml`
+- `.github/workflows/guides-governance.yml`
+
+Related governance siblings:
+
+- `rfcs/` for proposal lifecycle and spec creation plans.
+- `guides/` for user/developer guide governance and compliance.
+
+## Existing Component Indexes
+
+- [core/README.md](core/README.md)
+- [services/README.md](services/README.md)
+- [session/README.md](session/README.md)
+- [infrastructure/README.md](infrastructure/README.md)
+
 ## Start Here
 
 - [getting-started.md](getting-started.md)
