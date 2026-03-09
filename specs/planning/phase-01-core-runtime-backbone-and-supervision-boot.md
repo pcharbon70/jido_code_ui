@@ -19,22 +19,22 @@ Back to index: [README](./README.md)
 [ ] 1 Phase 1 - Core Runtime Backbone and Supervision Boot
   Implement OTP startup and supervision ordering so runtime services initialize in deterministic order and preserve control-plane boundaries.
 
-  [ ] 1.1 Section - Application and Root Supervisor Boot
+  [x] 1.1 Section - Application and Root Supervisor Boot
     Implement root startup contracts for `JidoCodeUi.Application` and runtime child composition.
 
-    [ ] 1.1.1 Task - Implement deterministic root child startup ordering
+    [x] 1.1.1 Task - Implement deterministic root child startup ordering
       Define and enforce child-spec startup order for substrate, policy, orchestrator, compiler, renderer, and session runtime services.
 
-      [ ] 1.1.1.1 Subtask - Implement explicit child-spec order in `JidoCodeUi.Application.start/2`.
-      [ ] 1.1.1.2 Subtask - Implement readiness gate that blocks ingress before required services start.
-      [ ] 1.1.1.3 Subtask - Emit startup lifecycle outcomes with `correlation_id` and `request_id`.
+      [x] 1.1.1.1 Subtask - Implement explicit child-spec order in `JidoCodeUi.Application.start/2`.
+      [x] 1.1.1.2 Subtask - Implement readiness gate that blocks ingress before required services start.
+      [x] 1.1.1.3 Subtask - Emit startup lifecycle outcomes with `correlation_id` and `request_id`.
 
-    [ ] 1.1.2 Task - Implement root restart and fault semantics
+    [x] 1.1.2 Task - Implement root restart and fault semantics
       Define restart strategy and escalation behavior that preserves service isolation boundaries.
 
-      [ ] 1.1.2.1 Subtask - Configure root supervisor strategy, intensity, and restart policy defaults.
-      [ ] 1.1.2.2 Subtask - Implement typed error propagation for startup and dependency failures.
-      [ ] 1.1.2.3 Subtask - Emit restart and escalation telemetry for recovery visibility.
+      [x] 1.1.2.1 Subtask - Configure root supervisor strategy, intensity, and restart policy defaults.
+      [x] 1.1.2.2 Subtask - Implement typed error propagation for startup and dependency failures.
+      [x] 1.1.2.3 Subtask - Emit restart and escalation telemetry for recovery visibility.
 
   [ ] 1.2 Section - Runtime Wiring and Control-Plane Boundary Enforcement
     Implement canonical wiring for runtime modules while enforcing ownership boundaries in the startup graph.
