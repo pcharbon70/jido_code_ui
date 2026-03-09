@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 5 Phase 5 - IUR Renderer and Web UI Event Projection Loop
   Implement deterministic IUR rendering to `web-ui` contracts and close the projection loop from browser events back into runtime admission.
 
-  [ ] 5.1 Section - Canonical IUR-to-Web UI Rendering
+  [x] 5.1 Section - Canonical IUR-to-Web UI Rendering
     Implement render adapter behavior for converting canonical IUR documents into web-ui projection payloads.
 
-    [ ] 5.1.1 Task - Implement renderer input and projection contract
+    [x] 5.1.1 Task - Implement renderer input and projection contract
       Consume `UnifiedIurDocument` and produce deterministic web-ui payloads through `JidoCodeUi.Services.IurRenderer.render/2`.
 
-      [ ] 5.1.1.1 Subtask - Implement renderer validation for required IUR document fields and versions.
-      [ ] 5.1.1.2 Subtask - Implement deterministic projection mapping from IUR nodes to web-ui output structures.
-      [ ] 5.1.1.3 Subtask - Implement continuity metadata propagation into render outputs.
+      [x] 5.1.1.1 Subtask - Implement renderer validation for required IUR document fields and versions.
+      [x] 5.1.1.2 Subtask - Implement deterministic projection mapping from IUR nodes to web-ui output structures.
+      [x] 5.1.1.3 Subtask - Implement continuity metadata propagation into render outputs.
 
-    [ ] 5.1.2 Task - Implement render error normalization
+    [x] 5.1.2 Task - Implement render error normalization
       Normalize render failures into typed error outcomes compatible with orchestrator contracts.
 
-      [ ] 5.1.2.1 Subtask - Define typed error categories for invalid IUR, adapter failure, and timeout outcomes.
-      [ ] 5.1.2.2 Subtask - Implement render-stage `TypedError` normalization with stage metadata.
-      [ ] 5.1.2.3 Subtask - Emit render failure telemetry with continuity IDs and error classification.
+      [x] 5.1.2.1 Subtask - Define typed error categories for invalid IUR, adapter failure, and timeout outcomes.
+      [x] 5.1.2.2 Subtask - Implement render-stage `TypedError` normalization with stage metadata.
+      [x] 5.1.2.3 Subtask - Emit render failure telemetry with continuity IDs and error classification.
 
   [ ] 5.2 Section - Event Projection Loop Back to Runtime
     Implement browser interaction event projection back through substrate admission and orchestration.
