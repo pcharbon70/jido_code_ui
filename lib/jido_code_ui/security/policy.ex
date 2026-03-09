@@ -232,6 +232,7 @@ defmodule JidoCodeUi.Security.Policy do
         stage: "policy_authorization",
         details: %{
           policy_version: request.policy_version,
+          route_key: request.route_key,
           actor: %{
             subject_id: request.actor.subject_id,
             actor_type: request.actor.actor_type

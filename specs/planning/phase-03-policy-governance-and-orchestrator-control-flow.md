@@ -52,22 +52,22 @@ Back to index: [README](./README.md)
       [x] 3.2.2.2 Subtask - Implement redaction for sensitive prompt/code fields in denied telemetry.
       [x] 3.2.2.3 Subtask - Implement denied-path observability events with continuity IDs.
 
-  [ ] 3.3 Section - Orchestrator Contracts and Type Alignment
+  [x] 3.3 Section - Orchestrator Contracts and Type Alignment
     Implement orchestration type compatibility with downstream compile, session, and render services.
 
-    [ ] 3.3.1 Task - Implement orchestration request/response type contracts
+    [x] 3.3.1 Task - Implement orchestration request/response type contracts
       Define stable orchestrator input/output types compatible with compile and render service contracts.
 
-      [ ] 3.3.1.1 Subtask - Define `UiCommand` and admitted event envelope contracts consumed by `execute/2`.
-      [ ] 3.3.1.2 Subtask - Define typed success output contract passed into session and renderer flows.
-      [ ] 3.3.1.3 Subtask - Define typed failure output contract for stage-specific orchestration errors.
+      [x] 3.3.1.1 Subtask - Define `UiCommand` and admitted event envelope contracts consumed by `execute/2`.
+      [x] 3.3.1.2 Subtask - Define typed success output contract passed into session and renderer flows.
+      [x] 3.3.1.3 Subtask - Define typed failure output contract for stage-specific orchestration errors.
 
-    [ ] 3.3.2 Task - Implement orchestration telemetry contract alignment
+    [x] 3.3.2 Task - Implement orchestration telemetry contract alignment
       Emit required event families for accepted, denied, and failed orchestration outcomes.
 
-      [ ] 3.3.2.1 Subtask - Emit command-received and policy-denied events with policy version metadata.
-      [ ] 3.3.2.2 Subtask - Emit stage transition events covering compile, session, and render stages.
-      [ ] 3.3.2.3 Subtask - Emit orchestrator outcome metrics for success, deny, and failure branches.
+      [x] 3.3.2.1 Subtask - Emit command-received and policy-denied events with policy version metadata.
+      [x] 3.3.2.2 Subtask - Emit stage transition events covering compile, session, and render stages.
+      [x] 3.3.2.3 Subtask - Emit orchestrator outcome metrics for success, deny, and failure branches.
 
   [ ] 3.4 Section - Phase 3 Integration Tests
     Validate policy gating, deterministic orchestration flow, and denied-path behavior end-to-end.

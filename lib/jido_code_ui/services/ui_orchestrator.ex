@@ -109,7 +109,9 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
                envelope_kind: input.envelope_kind,
                route_key: state.route_key
              },
-             policy_version: policy_version
+             policy_version: policy_version,
+             correlation_id: input.continuity.correlation_id,
+             request_id: input.continuity.request_id
            ) do
         {:ok, compile_result} ->
           Telemetry.emit("ui.dsl.compile.completed.v1", %{
@@ -201,7 +203,9 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
                session_snapshot: state.session_snapshot,
                route_key: state.route_key
              },
-             policy_version: policy_version
+             policy_version: policy_version,
+             correlation_id: input.continuity.correlation_id,
+             request_id: input.continuity.request_id
            ) do
         {:ok, render_result} ->
           Telemetry.emit("ui.iur.render.completed.v1", %{
