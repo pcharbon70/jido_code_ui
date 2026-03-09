@@ -29,13 +29,22 @@ defmodule JidoCodeUi.Services.IurRenderer do
     with :ok <- StartupGuard.ensure_ready("iur_render", %{operation: "render"}) do
       continuity = continuity_ids(render_request, opts)
       route_key = normalize_string(get_value(render_request, :route_key)) || "route-unset"
+      started_at_us = System.monotonic_time(:microsecond)
 
-      case run_render_pipeline(render_request, continuity, route_key) do
+      emit_render_started(continuity, route_key)
+
+      result = run_render_pipeline(render_request, continuity, route_key)
+      latency_ms = elapsed_ms(started_at_us)
+
+      case result do
         {:ok, render_result} ->
+          emit_render_completed(render_result, continuity, route_key)
+          emit_render_metrics({:ok, render_result}, continuity, route_key, latency_ms)
           {:ok, render_result}
 
         {:error, %TypedError{} = typed_error} ->
           emit_render_failure(typed_error, continuity, route_key)
+          emit_render_metrics({:error, typed_error}, continuity, route_key, latency_ms)
           {:error, typed_error}
       end
     end
@@ -43,6 +52,10 @@ defmodule JidoCodeUi.Services.IurRenderer do
 
   def render(_render_request, opts) when is_list(opts) do
     continuity = normalize_continuity(opts)
+    route_key = "route-unset"
+    started_at_us = System.monotonic_time(:microsecond)
+
+    emit_render_started(continuity, route_key)
 
     typed_error =
       render_error("iur_invalid_render_request", "Render request must be a map", continuity,
@@ -50,7 +63,8 @@ defmodule JidoCodeUi.Services.IurRenderer do
         details: %{schema_path: "$", expected: "map", received: "non-map"}
       )
 
-    emit_render_failure(typed_error, continuity, "route-unset")
+    emit_render_failure(typed_error, continuity, route_key)
+    emit_render_metrics({:error, typed_error}, continuity, route_key, elapsed_ms(started_at_us))
     {:error, typed_error}
   end
 
@@ -291,6 +305,24 @@ defmodule JidoCodeUi.Services.IurRenderer do
     "rnd-" <> Integer.to_string(token_digest)
   end
 
+  defp emit_render_started(continuity, route_key) do
+    Telemetry.emit("ui.iur.render.started.v1", %{
+      route_key: route_key,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+  end
+
+  defp emit_render_completed(render_result, continuity, route_key) do
+    Telemetry.emit("ui.iur.render.completed.v1", %{
+      route_key: route_key,
+      payload_class: payload_class_from_result(render_result),
+      iur_version: get_in(render_result, [:render_metadata, :iur_version]),
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+  end
+
   defp emit_render_failure(%TypedError{} = typed_error, continuity, route_key) do
     Telemetry.emit("ui.iur.render.failed.v1", %{
       route_key: route_key,
@@ -301,6 +333,72 @@ defmodule JidoCodeUi.Services.IurRenderer do
       correlation_id: continuity.correlation_id,
       request_id: continuity.request_id
     })
+  end
+
+  defp emit_render_metrics({:ok, render_result}, continuity, route_key, latency_ms) do
+    payload_class = payload_class_from_result(render_result)
+
+    Telemetry.emit("ui.iur.render.metric.v1", %{
+      metric: "render_latency_ms",
+      value: latency_ms,
+      outcome: "success",
+      route_key: route_key,
+      payload_class: payload_class,
+      error_category: "none",
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+
+    Telemetry.emit("ui.iur.render.metric.v1", %{
+      metric: "render_total",
+      value: 1,
+      outcome: "success",
+      route_key: route_key,
+      payload_class: payload_class,
+      error_category: "none",
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+  end
+
+  defp emit_render_metrics(
+         {:error, %TypedError{} = typed_error},
+         continuity,
+         route_key,
+         latency_ms
+       ) do
+    classification = classify_render_error(typed_error.error_code)
+
+    Telemetry.emit("ui.iur.render.metric.v1", %{
+      metric: "render_latency_ms",
+      value: latency_ms,
+      outcome: "failure",
+      route_key: route_key,
+      payload_class: "unknown",
+      error_category: typed_error.category,
+      error_code: typed_error.error_code,
+      error_classification: classification,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+
+    Telemetry.emit("ui.iur.render.metric.v1", %{
+      metric: "render_total",
+      value: 1,
+      outcome: "failure",
+      route_key: route_key,
+      payload_class: "unknown",
+      error_category: typed_error.category,
+      error_code: typed_error.error_code,
+      error_classification: classification,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+  end
+
+  defp payload_class_from_result(render_result) do
+    normalize_string(get_in(render_result, [:render_metadata, :payload_class])) ||
+      payload_class(get_in(render_result, [:projection, :root]))
   end
 
   defp classify_render_error("iur_invalid_document"), do: "invalid_iur"
@@ -459,6 +557,10 @@ defmodule JidoCodeUi.Services.IurRenderer do
   end
 
   defp get_map(_map, _key), do: %{}
+
+  defp elapsed_ms(started_at_us) do
+    (System.monotonic_time(:microsecond) - started_at_us) / 1_000
+  end
 
   defp default_id(prefix) do
     prefix <> "-" <> Integer.to_string(System.unique_integer([:positive]))

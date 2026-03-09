@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 5.2.2.2 Subtask - Implement orchestrator compatibility for projected event command semantics.
       [x] 5.2.2.3 Subtask - Implement round-trip outcome telemetry for render-event cycles.
 
-  [ ] 5.3 Section - Render Observability and Performance Baseline
+  [x] 5.3 Section - Render Observability and Performance Baseline
     Implement render lifecycle telemetry and performance baselines.
 
-    [ ] 5.3.1 Task - Implement render lifecycle events
+    [x] 5.3.1 Task - Implement render lifecycle events
       Emit required started/completed/failed render events with typed metadata.
 
-      [ ] 5.3.1.1 Subtask - Emit `ui.iur.render.started.v1` on render initiation.
-      [ ] 5.3.1.2 Subtask - Emit `ui.iur.render.completed.v1` for successful render outcomes.
-      [ ] 5.3.1.3 Subtask - Emit `ui.iur.render.failed.v1` with normalized render errors.
+      [x] 5.3.1.1 Subtask - Emit `ui.iur.render.started.v1` on render initiation.
+      [x] 5.3.1.2 Subtask - Emit `ui.iur.render.completed.v1` for successful render outcomes.
+      [x] 5.3.1.3 Subtask - Emit `ui.iur.render.failed.v1` with normalized render errors.
 
-    [ ] 5.3.2 Task - Implement render metrics baseline
+    [x] 5.3.2 Task - Implement render metrics baseline
       Emit render latency, throughput, and failure metrics for runtime monitoring.
 
-      [ ] 5.3.2.1 Subtask - Implement render latency histogram by payload class.
-      [ ] 5.3.2.2 Subtask - Implement render success/failure counters by outcome category.
-      [ ] 5.3.2.3 Subtask - Implement round-trip latency metric across compile-render-event loop boundaries.
+      [x] 5.3.2.1 Subtask - Implement render latency histogram by payload class.
+      [x] 5.3.2.2 Subtask - Implement render success/failure counters by outcome category.
+      [x] 5.3.2.3 Subtask - Implement round-trip latency metric across compile-render-event loop boundaries.
 
   [ ] 5.4 Section - Phase 5 Integration Tests
     Validate render projection, event loop continuity, and typed render failure handling end-to-end.
