@@ -26,11 +26,13 @@ defmodule JidoCodeUi.Runtime.Substrate do
   def admit(envelope) when is_map(envelope) do
     with :ok <- StartupGuard.ensure_ready("ingress_admission", %{operation: "admit"}),
          {:ok, normalized_envelope} <- validate_and_normalize(envelope) do
+      emit_admitted_ingress(normalized_envelope)
       emit_continuity_check(:accepted, normalized_envelope)
       emit_normalization_outcome(:accepted, normalized_envelope)
       {:ok, normalized_envelope}
     else
       {:error, %TypedError{} = typed_error} ->
+        emit_denied_ingress(typed_error, envelope)
         emit_continuity_check(:rejected, typed_error)
         emit_auth_denied_diagnostics(typed_error)
         emit_normalization_outcome(:rejected, typed_error)
@@ -52,6 +54,7 @@ defmodule JidoCodeUi.Runtime.Substrate do
         }
       )
 
+    emit_denied_ingress(typed_error, %{})
     emit_normalization_outcome(:rejected, typed_error)
     {:error, typed_error}
   end
@@ -486,15 +489,13 @@ defmodule JidoCodeUi.Runtime.Substrate do
     end
   end
 
-  defp validation_error(source, error_code, message, stage, details, category \\ "validation") do
+  defp validation_error(source, error_code, message, stage, details, category \\ "ingress") do
     {correlation_id, request_id} = continuity_ids_from(source)
 
-    TypedError.new(
-      error_code: error_code,
+    TypedError.ingress(error_code, message,
       category: category,
       stage: stage,
       retryable: false,
-      message: message,
       details: details,
       correlation_id: correlation_id,
       request_id: request_id
@@ -570,6 +571,56 @@ defmodule JidoCodeUi.Runtime.Substrate do
         request_id: typed_error.request_id,
         details: typed_error.details
       })
+    end
+  end
+
+  defp emit_admitted_ingress(normalized_envelope) do
+    session_id =
+      case normalized_envelope.envelope_kind do
+        :ui_command -> get_in(normalized_envelope, [:ui_command, :session_id])
+        :widget_ui_event -> get_in(normalized_envelope, [:dispatch_context, :session_id])
+      end
+
+    Telemetry.emit("ui.command.received.v1", %{
+      correlation_id: normalized_envelope.correlation_id,
+      request_id: normalized_envelope.request_id,
+      session_id: session_id,
+      envelope_kind: to_string(normalized_envelope.envelope_kind),
+      schema_version: normalized_envelope.schema_version
+    })
+  end
+
+  defp emit_denied_ingress(%TypedError{} = typed_error, envelope) do
+    policy_context =
+      case get_key(envelope, :auth_context) || get_key(envelope, :auth) do
+        auth_map when is_map(auth_map) -> normalize_policy_context(auth_map)
+        _ -> %{}
+      end
+
+    Telemetry.emit("ui.ingress.denied.v1", %{
+      error_code: typed_error.error_code,
+      message: typed_error.message,
+      category: typed_error.category,
+      stage: typed_error.stage,
+      correlation_id: typed_error.correlation_id,
+      request_id: typed_error.request_id,
+      policy_context: policy_context
+    })
+
+    Telemetry.emit("ui.ingress.failure.metric.v1", %{
+      metric: "ingress_failures_total",
+      failure_class: classify_ingress_failure(typed_error),
+      error_code: typed_error.error_code,
+      correlation_id: typed_error.correlation_id,
+      request_id: typed_error.request_id
+    })
+  end
+
+  defp classify_ingress_failure(%TypedError{error_code: error_code}) do
+    case error_code do
+      "ingress_auth_missing" -> "unauthorized"
+      "ingress_auth_invalid" -> "unauthorized"
+      _ -> "malformed"
     end
   end
 

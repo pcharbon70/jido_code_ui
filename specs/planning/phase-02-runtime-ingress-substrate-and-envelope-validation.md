@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 2.2.2.2 Subtask - Attach propagated auth context to orchestrator request envelopes.
       [x] 2.2.2.3 Subtask - Emit auth-propagation deny diagnostics for missing or invalid state.
 
-  [ ] 2.3 Section - Typed Ingress Error Contracts
+  [x] 2.3 Section - Typed Ingress Error Contracts
     Implement typed error contracts for ingress denials and malformed envelope outcomes.
 
-    [ ] 2.3.1 Task - Implement substrate typed reject outcomes
+    [x] 2.3.1 Task - Implement substrate typed reject outcomes
       Normalize malformed envelope and invalid-admission outcomes into `TypedError` responses.
 
-      [ ] 2.3.1.1 Subtask - Define ingress error codes for schema, auth, and continuity violations.
-      [ ] 2.3.1.2 Subtask - Implement `TypedError` mapping for all substrate reject branches.
-      [ ] 2.3.1.3 Subtask - Validate reject outcomes include stage metadata and continuity IDs when available.
+      [x] 2.3.1.1 Subtask - Define ingress error codes for schema, auth, and continuity violations.
+      [x] 2.3.1.2 Subtask - Implement `TypedError` mapping for all substrate reject branches.
+      [x] 2.3.1.3 Subtask - Validate reject outcomes include stage metadata and continuity IDs when available.
 
-    [ ] 2.3.2 Task - Implement ingress telemetry and audit events
+    [x] 2.3.2 Task - Implement ingress telemetry and audit events
       Emit required ingress observability events for accepted and denied admission attempts.
 
-      [ ] 2.3.2.1 Subtask - Emit `ui.command.received.v1` for accepted admissions.
-      [ ] 2.3.2.2 Subtask - Emit denied admission events with reason and policy context.
-      [ ] 2.3.2.3 Subtask - Emit ingress failure metrics for malformed and unauthorized attempts.
+      [x] 2.3.2.1 Subtask - Emit `ui.command.received.v1` for accepted admissions.
+      [x] 2.3.2.2 Subtask - Emit denied admission events with reason and policy context.
+      [x] 2.3.2.3 Subtask - Emit ingress failure metrics for malformed and unauthorized attempts.
 
   [ ] 2.4 Section - Phase 2 Integration Tests
     Validate ingress schema behavior, continuity propagation, and typed reject outcomes end-to-end.

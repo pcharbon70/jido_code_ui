@@ -52,6 +52,13 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
                event.outcome == "accepted" and
                event.envelope_kind == "ui_command"
            end)
+
+    assert Enum.any?(Telemetry.recent_events(20), fn event ->
+             event.event_name == "ui.command.received.v1" and
+               event.envelope_kind == "ui_command" and
+               event.correlation_id == "cor-123" and
+               event.request_id == "req-123"
+           end)
   end
 
   test "admit validates and normalizes WidgetUiEventEnvelope payloads" do
@@ -79,7 +86,7 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
   test "admit rejects malformed UiCommand payloads with schema-path diagnostics" do
     assert {:error,
             %TypedError{
-              category: "validation",
+              category: "ingress",
               error_code: "ingress_schema_invalid",
               stage: "ingress_validation"
             } = typed_error} =
@@ -88,7 +95,8 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
                session_id: "sess-123",
                correlation_id: "cor-901",
                request_id: "req-901",
-               payload: [:not, :a, :map]
+               payload: [:not, :a, :map],
+               auth_context: valid_auth_context()
              })
 
     assert typed_error.details.schema_path == "$.payload"
@@ -98,12 +106,23 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
                event.outcome == "rejected" and
                event.error_code == "ingress_schema_invalid"
            end)
+
+    assert Enum.any?(Telemetry.recent_events(20), fn event ->
+             event.event_name == "ui.ingress.denied.v1" and
+               event.error_code == "ingress_schema_invalid" and
+               event.policy_context.policy_version == "v1"
+           end)
+
+    assert Enum.any?(Telemetry.recent_events(20), fn event ->
+             event.event_name == "ui.ingress.failure.metric.v1" and
+               event.failure_class == "malformed"
+           end)
   end
 
   test "admit rejects missing continuity IDs before dispatch" do
     assert {:error,
             %TypedError{
-              category: "validation",
+              category: "ingress",
               error_code: "ingress_continuity_missing",
               stage: "ingress_continuity"
             } = typed_error} =
@@ -193,7 +212,7 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
   test "admit rejects non-map ingress payloads with typed invalid payload errors" do
     assert {:error,
             %TypedError{
-              category: "validation",
+              category: "ingress",
               error_code: "ingress_invalid_payload",
               stage: "ingress_validation"
             }} = Substrate.admit("not a map")
