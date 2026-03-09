@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 4 Phase 4 - DSL Compiler and IUR Canonicalization
   Implement DSL schema validation and deterministic server-authoritative compilation into canonical `UnifiedIurDocument` outputs.
 
-  [ ] 4.1 Section - DSL Schema Validation and Compatibility
+  [x] 4.1 Section - DSL Schema Validation and Compatibility
     Implement compile-time validation for DSL inputs and compatibility constraints.
 
-    [ ] 4.1.1 Task - Implement DSL input contract validation
+    [x] 4.1.1 Task - Implement DSL input contract validation
       Validate `UnifiedUiDslDocument` payloads prior to compile execution.
 
-      [ ] 4.1.1.1 Subtask - Implement required schema fields and structural validation for DSL documents.
-      [ ] 4.1.1.2 Subtask - Implement schema version compatibility checks for supported DSL versions.
-      [ ] 4.1.1.3 Subtask - Implement typed validation failures with schema-path diagnostics.
+      [x] 4.1.1.1 Subtask - Implement required schema fields and structural validation for DSL documents.
+      [x] 4.1.1.2 Subtask - Implement schema version compatibility checks for supported DSL versions.
+      [x] 4.1.1.3 Subtask - Implement typed validation failures with schema-path diagnostics.
 
-    [ ] 4.1.2 Task - Implement custom-node compatibility rules
+    [x] 4.1.2 Task - Implement custom-node compatibility rules
       Apply feature-flag and compatibility checks for custom DSL node inclusion.
 
-      [ ] 4.1.2.1 Subtask - Implement policy-verified custom-node allowlist checks before compile.
-      [ ] 4.1.2.2 Subtask - Implement compatibility diagnostics for unsupported custom-node combinations.
-      [ ] 4.1.2.3 Subtask - Implement typed reject outcomes for disallowed custom-node payloads.
+      [x] 4.1.2.1 Subtask - Implement policy-verified custom-node allowlist checks before compile.
+      [x] 4.1.2.2 Subtask - Implement compatibility diagnostics for unsupported custom-node combinations.
+      [x] 4.1.2.3 Subtask - Implement typed reject outcomes for disallowed custom-node payloads.
 
   [ ] 4.2 Section - Deterministic Server-Authoritative Compilation
     Implement canonical compile behavior through `JidoCodeUi.Services.DslCompiler.compile/2`.
