@@ -107,9 +107,11 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
              %{
                command: input.payload,
                envelope_kind: input.envelope_kind,
-               route_key: state.route_key
+               route_key: state.route_key,
+               policy_decision: state.policy_decision
              },
              policy_version: policy_version,
+             feature_flags: state.policy_decision.feature_flags,
              correlation_id: input.continuity.correlation_id,
              request_id: input.continuity.request_id
            ) do

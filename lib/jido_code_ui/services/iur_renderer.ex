@@ -53,8 +53,14 @@ defmodule JidoCodeUi.Services.IurRenderer do
         :command,
         :payload,
         :force_render_error
-      ]) ==
-        true
+      ]) == true or
+      get_in(iur_document, [
+        :compile_result,
+        :dsl_document,
+        :root,
+        :props,
+        :force_render_error
+      ]) == true
   end
 
   defp get_value(map, key) when is_map(map) do
