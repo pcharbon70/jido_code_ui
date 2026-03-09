@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - Custom node handling must honor feature-flag policy decisions.
 - Phase SCN focus: `SCN-004`, `SCN-008`.
 
-[ ] 4 Phase 4 - DSL Compiler and IUR Canonicalization
+[x] 4 Phase 4 - DSL Compiler and IUR Canonicalization
   Implement DSL schema validation and deterministic server-authoritative compilation into canonical `UnifiedIurDocument` outputs.
 
   [x] 4.1 Section - DSL Schema Validation and Compatibility
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 4.3.2.2 Subtask - Implement compile success/failure counters with error category labels.
       [x] 4.3.2.3 Subtask - Implement compile determinism parity diagnostics for repeated input runs.
 
-  [ ] 4.4 Section - Phase 4 Integration Tests
+  [x] 4.4 Section - Phase 4 Integration Tests
     Validate schema compatibility, deterministic compile parity, and typed compile failure behavior.
 
-    [ ] 4.4.1 Task - Hash parity and version compatibility integration scenarios
+    [x] 4.4.1 Task - Hash parity and version compatibility integration scenarios
       Verify compile determinism and schema compatibility across equivalent and incompatible inputs.
 
-      [ ] 4.4.1.1 Subtask - Verify repeated equivalent DSL inputs produce identical IUR hash outputs.
-      [ ] 4.4.1.2 Subtask - Verify unsupported DSL schema versions fail with typed compatibility errors.
-      [ ] 4.4.1.3 Subtask - Verify allowed custom nodes compile only when feature flags are enabled.
+      [x] 4.4.1.1 Subtask - Verify repeated equivalent DSL inputs produce identical IUR hash outputs.
+      [x] 4.4.1.2 Subtask - Verify unsupported DSL schema versions fail with typed compatibility errors.
+      [x] 4.4.1.3 Subtask - Verify allowed custom nodes compile only when feature flags are enabled.
 
-    [ ] 4.4.2 Task - Compile failure and observability integration scenarios
+    [x] 4.4.2 Task - Compile failure and observability integration scenarios
       Verify compile failures normalize into typed outcomes and emit required telemetry.
 
-      [ ] 4.4.2.1 Subtask - Verify compile failures include stage-tagged `TypedError` metadata.
-      [ ] 4.4.2.2 Subtask - Verify compile lifecycle events are emitted for success and failure paths.
-      [ ] 4.4.2.3 Subtask - Verify compile metrics coverage for latency and failure families.
+      [x] 4.4.2.1 Subtask - Verify compile failures include stage-tagged `TypedError` metadata.
+      [x] 4.4.2.2 Subtask - Verify compile lifecycle events are emitted for success and failure paths.
+      [x] 4.4.2.3 Subtask - Verify compile metrics coverage for latency and failure families.
