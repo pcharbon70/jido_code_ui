@@ -6,6 +6,7 @@ defmodule JidoCodeUi.Services.DslCompiler do
 
   use GenServer
 
+  alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.TypedError
@@ -15,6 +16,7 @@ defmodule JidoCodeUi.Services.DslCompiler do
   @validation_stage "dsl_validation"
   @compile_stage "dsl_compile"
   @iur_version "v1"
+  @parity_table :jido_code_ui_compile_parity
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
@@ -26,53 +28,81 @@ defmodule JidoCodeUi.Services.DslCompiler do
 
   def compile(compile_request, opts) when is_map(compile_request) and is_list(opts) do
     with :ok <- StartupGuard.ensure_ready("dsl_compile", %{operation: "compile"}) do
-      if force_compile_failure?(compile_request) do
-        {:error,
-         compile_error("dsl_compile_failed", "DSL compile failed", opts,
-           details: %{reason: "forced_failure"}
-         )}
-      else
-        with {:ok, normalized} <- normalize_compile_request(compile_request, opts),
-             :ok <- validate_dsl_document(normalized.dsl_document, normalized.continuity),
-             :ok <-
-               validate_custom_nodes(
-                 normalized.dsl_document,
-                 normalized.feature_flags,
-                 normalized.continuity
-               ) do
-          custom_nodes = extract_custom_nodes(normalized.dsl_document)
-          iur_document = build_iur_document(normalized)
-          iur_hash = hash_iur_document(iur_document)
-          diagnostics = compile_diagnostics(normalized, custom_nodes)
+      continuity = continuity_ids(compile_request, opts)
+      route_key = normalize_string(get_value(compile_request, :route_key)) || "route-unset"
+      preview_dsl_version = preview_dsl_version(compile_request, continuity)
 
-          {:ok,
-           %{
-             compile_authority: "server",
-             dsl_version: normalized.dsl_version,
-             iur_version: @iur_version,
-             iur_document: iur_document,
-             iur_hash: iur_hash,
-             diagnostics: diagnostics,
-             dsl_document: normalized.dsl_document,
-             compile_opts: opts
-           }}
-        end
-      end
+      emit_compile_started(continuity, route_key, preview_dsl_version)
+
+      started_at_us = System.monotonic_time(:microsecond)
+      result = run_compile_pipeline(compile_request, opts, continuity)
+      latency_ms = elapsed_ms(started_at_us)
+
+      emit_compile_outcome(result, continuity, route_key, preview_dsl_version, latency_ms)
+
+      result
     end
   end
 
   def compile(_compile_request, opts) when is_list(opts) do
-    {:error,
-     compile_error("dsl_compile_invalid_request", "Compile request must be a map", opts,
-       stage: @validation_stage,
-       details: %{schema_path: "$", expected: "map", received: "non-map"}
-     )}
+    continuity = normalize_continuity(opts)
+    route_key = "route-unset"
+    preview_dsl_version = "unknown"
+    started_at_us = System.monotonic_time(:microsecond)
+
+    emit_compile_started(continuity, route_key, preview_dsl_version)
+
+    error =
+      compile_error("dsl_compile_invalid_request", "Compile request must be a map", opts,
+        stage: @validation_stage,
+        details: %{schema_path: "$", expected: "map", received: "non-map"}
+      )
+
+    latency_ms = elapsed_ms(started_at_us)
+    emit_compile_outcome({:error, error}, continuity, route_key, preview_dsl_version, latency_ms)
+
+    {:error, error}
   end
 
   @impl true
   def init(_opts) do
     StartupLifecycle.mark_child_ready(@ready_child_id)
     {:ok, %{}}
+  end
+
+  defp run_compile_pipeline(compile_request, opts, continuity) do
+    if force_compile_failure?(compile_request) do
+      {:error,
+       compile_error("dsl_compile_failed", "DSL compile failed", continuity,
+         details: %{reason: "forced_failure"}
+       )}
+    else
+      with {:ok, normalized} <- normalize_compile_request(compile_request, opts),
+           :ok <- validate_dsl_document(normalized.dsl_document, normalized.continuity),
+           :ok <-
+             validate_custom_nodes(
+               normalized.dsl_document,
+               normalized.feature_flags,
+               normalized.continuity
+             ) do
+        custom_nodes = extract_custom_nodes(normalized.dsl_document)
+        iur_document = build_iur_document(normalized)
+        iur_hash = hash_iur_document(iur_document)
+        diagnostics = compile_diagnostics(normalized, custom_nodes)
+
+        {:ok,
+         %{
+           compile_authority: "server",
+           dsl_version: normalized.dsl_version,
+           iur_version: @iur_version,
+           iur_document: iur_document,
+           iur_hash: iur_hash,
+           diagnostics: diagnostics,
+           dsl_document: normalized.dsl_document,
+           compile_opts: opts
+         }}
+      end
+    end
   end
 
   defp normalize_compile_request(compile_request, opts) do
@@ -572,6 +602,226 @@ defmodule JidoCodeUi.Services.DslCompiler do
   defp severity_rank("debug"), do: 3
   defp severity_rank(_other), do: 4
 
+  defp emit_compile_started(continuity, route_key, dsl_version) do
+    Telemetry.emit("ui.dsl.compile.started.v1", %{
+      route_key: route_key,
+      dsl_version: dsl_version,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+  end
+
+  defp emit_compile_outcome(
+         {:ok, compile_result},
+         continuity,
+         route_key,
+         preview_dsl_version,
+         latency_ms
+       ) do
+    dsl_version = compile_result.dsl_version || preview_dsl_version
+    complexity_class = complexity_class(compile_result.iur_document)
+
+    Telemetry.emit("ui.dsl.compile.completed.v1", %{
+      route_key: route_key,
+      dsl_version: dsl_version,
+      iur_version: compile_result.iur_version,
+      iur_hash: compile_result.iur_hash,
+      compile_authority: compile_result.compile_authority,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+
+    emit_compile_metrics(
+      continuity,
+      route_key,
+      dsl_version,
+      complexity_class,
+      "success",
+      "none",
+      nil,
+      latency_ms
+    )
+
+    emit_parity_diagnostic(compile_result, continuity, route_key)
+  end
+
+  defp emit_compile_outcome(
+         {:error, %TypedError{} = typed_error},
+         continuity,
+         route_key,
+         preview_dsl_version,
+         latency_ms
+       ) do
+    dsl_version =
+      typed_error.details
+      |> get_value(:dsl_version)
+      |> normalize_string() || preview_dsl_version
+
+    Telemetry.emit("ui.dsl.compile.failed.v1", %{
+      route_key: route_key,
+      dsl_version: dsl_version,
+      error_code: typed_error.error_code,
+      error_category: typed_error.category,
+      error_stage: typed_error.stage,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+
+    emit_compile_metrics(
+      continuity,
+      route_key,
+      dsl_version,
+      "unknown",
+      "failure",
+      typed_error.category,
+      typed_error.error_code,
+      latency_ms
+    )
+  end
+
+  defp emit_compile_metrics(
+         continuity,
+         route_key,
+         dsl_version,
+         complexity_class,
+         outcome,
+         error_category,
+         error_code,
+         latency_ms
+       ) do
+    Telemetry.emit("ui.dsl.compile.metric.v1", %{
+      metric: "compile_latency_ms",
+      value: latency_ms,
+      route_key: route_key,
+      dsl_version: dsl_version,
+      complexity_class: complexity_class,
+      outcome: outcome,
+      error_category: error_category,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+
+    Telemetry.emit("ui.dsl.compile.metric.v1", %{
+      metric: "compile_total",
+      value: 1,
+      route_key: route_key,
+      dsl_version: dsl_version,
+      complexity_class: complexity_class,
+      outcome: outcome,
+      error_category: error_category,
+      error_code: error_code,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+  end
+
+  defp emit_parity_diagnostic(compile_result, continuity, route_key) do
+    table = ensure_parity_table!()
+
+    signature =
+      compile_result.iur_document
+      |> signature_payload(compile_result.dsl_version)
+      |> hash_iur_document()
+
+    previous_hash =
+      case :ets.lookup(table, signature) do
+        [{^signature, hash}] when is_binary(hash) -> hash
+        _ -> nil
+      end
+
+    status =
+      cond do
+        previous_hash == nil -> "baseline"
+        previous_hash == compile_result.iur_hash -> "match"
+        true -> "mismatch"
+      end
+
+    :ets.insert(table, {signature, compile_result.iur_hash})
+
+    Telemetry.emit("ui.dsl.compile.determinism.parity.v1", %{
+      route_key: route_key,
+      signature: signature,
+      status: status,
+      iur_hash: compile_result.iur_hash,
+      previous_iur_hash: previous_hash,
+      dsl_version: compile_result.dsl_version,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+  end
+
+  defp signature_payload(iur_document, dsl_version) do
+    %{
+      "dsl_version" => dsl_version,
+      "root" => Map.get(iur_document, "root")
+    }
+  end
+
+  defp complexity_class(iur_document) when is_map(iur_document) do
+    node_count =
+      iur_document
+      |> Map.get("root")
+      |> count_nodes()
+
+    cond do
+      node_count <= 0 -> "unknown"
+      node_count <= 5 -> "small"
+      node_count <= 25 -> "medium"
+      true -> "large"
+    end
+  end
+
+  defp complexity_class(_iur_document), do: "unknown"
+
+  defp count_nodes(nil), do: 0
+
+  defp count_nodes(node) when is_map(node) do
+    children =
+      case Map.get(node, "children") do
+        list when is_list(list) -> list
+        _ -> []
+      end
+
+    1 + Enum.reduce(children, 0, fn child, acc -> acc + count_nodes(child) end)
+  end
+
+  defp count_nodes(_node), do: 0
+
+  defp preview_dsl_version(compile_request, continuity) do
+    case extract_dsl_document(compile_request, continuity) do
+      {:ok, dsl_document} ->
+        normalize_string(get_value(dsl_document, :dsl_version)) || "unknown"
+
+      _ ->
+        "unknown"
+    end
+  end
+
+  defp elapsed_ms(started_at_us) do
+    duration_us = System.monotonic_time(:microsecond) - started_at_us
+    max(duration_us / 1000.0, 0.0)
+  end
+
+  defp ensure_parity_table! do
+    case :ets.whereis(@parity_table) do
+      :undefined ->
+        try do
+          :ets.new(@parity_table, [
+            :named_table,
+            :public,
+            :set,
+            {:read_concurrency, true},
+            {:write_concurrency, true}
+          ])
+        rescue
+          ArgumentError -> @parity_table
+        end
+
+      _table ->
+        @parity_table
+    end
+  end
+
   defp resolve_feature_flags(compile_request, opts) do
     request_flags =
       compile_request
@@ -660,6 +910,8 @@ defmodule JidoCodeUi.Services.DslCompiler do
     trimmed = String.trim(value)
     if trimmed == "", do: nil, else: trimmed
   end
+
+  defp normalize_string(nil), do: nil
 
   defp normalize_string(value) when is_atom(value),
     do: value |> Atom.to_string() |> normalize_string()

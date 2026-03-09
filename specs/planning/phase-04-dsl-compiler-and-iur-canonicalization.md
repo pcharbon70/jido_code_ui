@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 4.2.2.2 Subtask - Implement `compile_authority: "server"` enforcement in all successful compile outcomes.
       [x] 4.2.2.3 Subtask - Implement typed compile failure outcomes with stage metadata.
 
-  [ ] 4.3 Section - Compiler Telemetry and Failure Normalization
+  [x] 4.3 Section - Compiler Telemetry and Failure Normalization
     Implement observability coverage for compile lifecycle and failures.
 
-    [ ] 4.3.1 Task - Implement compile lifecycle event emission
+    [x] 4.3.1 Task - Implement compile lifecycle event emission
       Emit required compile started/completed/failed events with continuity metadata.
 
-      [ ] 4.3.1.1 Subtask - Emit `ui.dsl.compile.started.v1` before compile execution.
-      [ ] 4.3.1.2 Subtask - Emit `ui.dsl.compile.completed.v1` for successful compile outcomes.
-      [ ] 4.3.1.3 Subtask - Emit `ui.dsl.compile.failed.v1` with typed error metadata.
+      [x] 4.3.1.1 Subtask - Emit `ui.dsl.compile.started.v1` before compile execution.
+      [x] 4.3.1.2 Subtask - Emit `ui.dsl.compile.completed.v1` for successful compile outcomes.
+      [x] 4.3.1.3 Subtask - Emit `ui.dsl.compile.failed.v1` with typed error metadata.
 
-    [ ] 4.3.2 Task - Implement compile metrics baseline
+    [x] 4.3.2 Task - Implement compile metrics baseline
       Emit compile latency, throughput, and failure metrics for conformance visibility.
 
-      [ ] 4.3.2.1 Subtask - Implement compile latency metrics by schema version and node complexity class.
-      [ ] 4.3.2.2 Subtask - Implement compile success/failure counters with error category labels.
-      [ ] 4.3.2.3 Subtask - Implement compile determinism parity diagnostics for repeated input runs.
+      [x] 4.3.2.1 Subtask - Implement compile latency metrics by schema version and node complexity class.
+      [x] 4.3.2.2 Subtask - Implement compile success/failure counters with error category labels.
+      [x] 4.3.2.3 Subtask - Implement compile determinism parity diagnostics for repeated input runs.
 
   [ ] 4.4 Section - Phase 4 Integration Tests
     Validate schema compatibility, deterministic compile parity, and typed compile failure behavior.
