@@ -329,26 +329,36 @@ defmodule JidoCodeUi.Runtime.Substrate do
   end
 
   defp normalize_policy_context(auth_map) do
-    policy_context = get_key(auth_map, :policy_context)
+    policy_context = get_map_or_empty(auth_map, :policy_context)
 
     policy_version =
-      case policy_context do
-        value when is_map(value) ->
-          get_key(value, :policy_version) || get_key(auth_map, :policy_version) || "v1"
+      get_key(policy_context, :policy_version) || get_key(auth_map, :policy_version) || "v1"
+
+    feature_flags =
+      case get_key(policy_context, :feature_flags) do
+        flags when is_map(flags) ->
+          flags
 
         _ ->
-          get_key(auth_map, :policy_version) || "v1"
+          get_map_or_empty(auth_map, :feature_flags)
       end
 
-    %{
-      policy_version: to_string(policy_version)
-    }
+    policy_context
+    |> Map.put(:policy_version, to_string(policy_version))
+    |> Map.put(:feature_flags, feature_flags)
   end
 
   defp get_boolean(map, key, default) do
     case get_key(map, key) do
       value when is_boolean(value) -> value
       _ -> default
+    end
+  end
+
+  defp get_map_or_empty(map, key) do
+    case get_key(map, key) do
+      value when is_map(value) -> value
+      _ -> %{}
     end
   end
 
