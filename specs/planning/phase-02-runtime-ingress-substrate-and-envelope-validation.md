@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 2 Phase 2 - Runtime Ingress Substrate and Envelope Validation
   Implement ingress substrate behavior for envelope validation, normalization, continuity propagation, and typed reject outcomes.
 
-  [ ] 2.1 Section - Envelope Schema Validation and Normalization
+  [x] 2.1 Section - Envelope Schema Validation and Normalization
     Implement canonical envelope schema handling for `UiCommand` and `WidgetUiEventEnvelope` paths.
 
-    [ ] 2.1.1 Task - Implement admission schema validation in substrate
+    [x] 2.1.1 Task - Implement admission schema validation in substrate
       Validate ingress request shapes before any orchestration or compile path execution.
 
-      [ ] 2.1.1.1 Subtask - Implement `UiCommand` schema validation in `JidoCodeUi.Runtime.Substrate.admit/1`.
-      [ ] 2.1.1.2 Subtask - Implement `WidgetUiEventEnvelope` schema validation in `JidoCodeUi.Runtime.Substrate.admit/1`.
-      [ ] 2.1.1.3 Subtask - Emit schema-path diagnostics in typed validation failures.
+      [x] 2.1.1.1 Subtask - Implement `UiCommand` schema validation in `JidoCodeUi.Runtime.Substrate.admit/1`.
+      [x] 2.1.1.2 Subtask - Implement `WidgetUiEventEnvelope` schema validation in `JidoCodeUi.Runtime.Substrate.admit/1`.
+      [x] 2.1.1.3 Subtask - Emit schema-path diagnostics in typed validation failures.
 
-    [ ] 2.1.2 Task - Implement canonical envelope normalization
+    [x] 2.1.2 Task - Implement canonical envelope normalization
       Normalize validated payloads into runtime-consumable shapes with stable field semantics.
 
-      [ ] 2.1.2.1 Subtask - Implement canonical key mapping and normalization for command and widget event payloads.
-      [ ] 2.1.2.2 Subtask - Implement required default-field handling for runtime dispatch compatibility.
-      [ ] 2.1.2.3 Subtask - Emit normalization result telemetry including validation outcome markers.
+      [x] 2.1.2.1 Subtask - Implement canonical key mapping and normalization for command and widget event payloads.
+      [x] 2.1.2.2 Subtask - Implement required default-field handling for runtime dispatch compatibility.
+      [x] 2.1.2.3 Subtask - Emit normalization result telemetry including validation outcome markers.
 
   [ ] 2.2 Section - Continuity and Auth Propagation
     Implement continuity and auth propagation needed by policy and orchestration layers.
