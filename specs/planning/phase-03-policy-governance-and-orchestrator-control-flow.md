@@ -18,22 +18,22 @@ Back to index: [README](./README.md)
 [ ] 3 Phase 3 - Policy Governance and Orchestrator Control Flow
   Implement deterministic orchestrator execution with explicit policy governance, deny behavior, and feature-flag custom-node controls.
 
-  [ ] 3.1 Section - Policy Authority and Feature-Flag Governance
+  [x] 3.1 Section - Policy Authority and Feature-Flag Governance
     Implement canonical policy evaluation behavior and feature-flag decisions for DSL node execution.
 
-    [ ] 3.1.1 Task - Implement authorization and policy-version evaluation
+    [x] 3.1.1 Task - Implement authorization and policy-version evaluation
       Enforce policy decisions through `JidoCodeUi.Security.Policy.authorize/2` before compile and session mutation paths.
 
-      [ ] 3.1.1.1 Subtask - Implement policy decision request shape including actor, command, and context metadata.
-      [ ] 3.1.1.2 Subtask - Implement policy-version tagging in allow and deny outcomes.
-      [ ] 3.1.1.3 Subtask - Implement typed deny outcomes for unauthorized mutating requests.
+      [x] 3.1.1.1 Subtask - Implement policy decision request shape including actor, command, and context metadata.
+      [x] 3.1.1.2 Subtask - Implement policy-version tagging in allow and deny outcomes.
+      [x] 3.1.1.3 Subtask - Implement typed deny outcomes for unauthorized mutating requests.
 
-    [ ] 3.1.2 Task - Implement custom-node feature-flag gating
+    [x] 3.1.2 Task - Implement custom-node feature-flag gating
       Enforce that custom DSL nodes execute only when allowed by policy-versioned feature flags.
 
-      [ ] 3.1.2.1 Subtask - Implement feature-flag lookup contract bound to policy context.
-      [ ] 3.1.2.2 Subtask - Implement deny behavior for unsupported or disabled custom node usage.
-      [ ] 3.1.2.3 Subtask - Emit policy telemetry for custom-node allow/deny decisions.
+      [x] 3.1.2.1 Subtask - Implement feature-flag lookup contract bound to policy context.
+      [x] 3.1.2.2 Subtask - Implement deny behavior for unsupported or disabled custom node usage.
+      [x] 3.1.2.3 Subtask - Emit policy telemetry for custom-node allow/deny decisions.
 
   [ ] 3.2 Section - Deterministic Orchestrator Routing
     Implement orchestrator routing from validated ingress to compile, session, and render flow.
