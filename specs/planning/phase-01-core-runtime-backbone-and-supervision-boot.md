@@ -16,7 +16,7 @@ Back to index: [README](./README.md)
 - Ingress admission remains blocked until required runtime children are ready.
 - Phase SCN focus: `SCN-001`, `SCN-003`, `SCN-004`.
 
-[ ] 1 Phase 1 - Core Runtime Backbone and Supervision Boot
+[x] 1 Phase 1 - Core Runtime Backbone and Supervision Boot
   Implement OTP startup and supervision ordering so runtime services initialize in deterministic order and preserve control-plane boundaries.
 
   [x] 1.1 Section - Application and Root Supervisor Boot
@@ -70,19 +70,19 @@ Back to index: [README](./README.md)
       [x] 1.3.2.2 Subtask - Normalize root startup failure envelopes with stage metadata.
       [x] 1.3.2.3 Subtask - Validate `TypedError` shape compatibility with conformance scenarios.
 
-  [ ] 1.4 Section - Phase 1 Integration Tests
+  [x] 1.4 Section - Phase 1 Integration Tests
     Validate startup ordering, boundary enforcement, and typed startup outcomes end-to-end.
 
-    [ ] 1.4.1 Task - Startup ordering and readiness integration scenarios
+    [x] 1.4.1 Task - Startup ordering and readiness integration scenarios
       Verify deterministic startup ordering and readiness gate behavior.
 
-      [ ] 1.4.1.1 Subtask - Verify required runtime children start in canonical order.
-      [ ] 1.4.1.2 Subtask - Verify ingress admission is denied before readiness and allowed after readiness.
-      [ ] 1.4.1.3 Subtask - Verify continuity metadata appears on startup lifecycle outcomes.
+      [x] 1.4.1.1 Subtask - Verify required runtime children start in canonical order.
+      [x] 1.4.1.2 Subtask - Verify ingress admission is denied before readiness and allowed after readiness.
+      [x] 1.4.1.3 Subtask - Verify continuity metadata appears on startup lifecycle outcomes.
 
-    [ ] 1.4.2 Task - Boundary and failure-path integration scenarios
+    [x] 1.4.2 Task - Boundary and failure-path integration scenarios
       Verify root fault semantics, ownership boundary enforcement, and typed startup errors.
 
-      [ ] 1.4.2.1 Subtask - Verify transport modules cannot assume session authority at startup.
-      [ ] 1.4.2.2 Subtask - Verify startup dependency faults produce normalized typed errors.
-      [ ] 1.4.2.3 Subtask - Verify restart and escalation telemetry is emitted for failure paths.
+      [x] 1.4.2.1 Subtask - Verify transport modules cannot assume session authority at startup.
+      [x] 1.4.2.2 Subtask - Verify startup dependency faults produce normalized typed errors.
+      [x] 1.4.2.3 Subtask - Verify restart and escalation telemetry is emitted for failure paths.
