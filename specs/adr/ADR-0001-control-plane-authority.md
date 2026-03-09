@@ -6,19 +6,25 @@ Accepted
 
 ## Context
 
-Describe why explicit authority boundaries are needed.
+`jido_code_ui` spans UI composition, transport validation, runtime orchestration, and session-state management. Without explicit authority boundaries, DSL/IUR/render behavior can drift between modules and produce non-deterministic outcomes.
 
 ## Decision
 
-1. UI-plane authority: `TODO`
-2. Transport-plane authority: `TODO`
-3. Runtime/domain authority: `TODO`
-4. Non-authoritative extension seams: `TODO`
+1. UI-plane authority: owns UI composition intent, IUR render contract projection, and browser-facing presentation adapters.
+2. Transport-plane authority: owns ingress validation, envelope normalization, correlation continuity, and request trust propagation.
+3. Runtime/domain authority: owns command orchestration, server-authoritative DSL->IUR transformation semantics, policy-gated mutations, and session-state transitions.
+4. Non-authoritative extension seams: custom widgets, telemetry sinks, and compile plugins MAY extend behavior but MUST NOT bypass runtime authority for state-changing decisions.
+5. Custom DSL node types are allowed only when enabled by versioned feature-flag policy under runtime authority.
+6. Session snapshots are in-memory only for v1 and are not part of external persistence guarantees.
 
 ## Consequences
 
 - Ownership boundaries are explicit and reviewable.
-- Contract and conformance docs can enforce one control-plane model.
+- DSL->IUR->render invariants can be enforced consistently across docs and tests.
+- Transport cannot silently mutate runtime/session state.
+- Compile authority remains centralized on the server runtime surface.
+- Feature-flag policy becomes a release gate for custom DSL extensions.
+- Governance checks can fail fast on control-plane drift.
 
 ## Related Requirements
 

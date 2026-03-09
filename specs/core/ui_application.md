@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`JidoCodeUi.Application` is the runtime entry point for `jido_code_ui`. It establishes root startup boundaries and deterministic handoff to runtime services.
+`JidoCodeUi.Application` is the runtime entry point for `jido_code_ui`. It establishes deterministic startup order for orchestration, compile, render, and session services that implement the `unified-ui DSL -> unified-iur -> web-ui` pipeline.
 
 ## Control Plane
 
@@ -13,22 +13,27 @@ Primary control-plane ownership: **UI Runtime Plane**.
 ```mermaid
 graph TD
   A[OTP Application Start] --> B[JidoCodeUi.Application]
-  B --> C[JidoCodeUi Runtime Surfaces]
+  B --> C[JidoCodeUi.Runtime.Substrate]
+  B --> D[JidoCodeUi.Services.UiOrchestrator]
+  B --> E[JidoCodeUi.Services.DslCompiler]
+  B --> F[JidoCodeUi.Services.IurRenderer]
+  B --> G[JidoCodeUi.Session.RuntimeAgent]
 ```
 
 ## Design Intent
 
-- keep startup order deterministic and auditable
-- keep runtime ownership and handoff boundaries explicit
-- emit typed lifecycle outcomes for observability
+- enforce deterministic startup and dependency wiring
+- keep control-plane boundaries explicit at boot time
+- ensure compile/render services are available before command intake opens
 
 ### Acceptance Criteria
 
 | Acceptance ID (AC-XX) | Criterion | Verification |
 |---|---|---|
-| `AC-01` | Application boot path is deterministic and reproducible. | Startup integration assertions over ordered lifecycle checkpoints. |
-| `AC-02` | Startup failures return typed errors and retain correlation metadata. | Fault-injection tests asserting `TypedError` shape and IDs. |
-| `AC-03` | Root startup ownership remains within declared control-plane boundaries. | Control-plane routing review and contract checks. |
+| `AC-01` | Application boot order is deterministic across runs. | Startup integration tests assert ordered readiness checkpoints. |
+| `AC-02` | Boot wiring includes orchestrator, compiler, renderer, and session runtime services. | Supervision-tree assertions for required child specs. |
+| `AC-03` | Startup failures emit typed errors with correlation metadata. | Fault-injection tests on startup dependencies. |
+| `AC-04` | Startup does not grant transport modules runtime-state mutation authority. | Control-plane boundary checks against ownership matrix. |
 
 ## Governance Mapping
 
