@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 4.1.2.2 Subtask - Implement compatibility diagnostics for unsupported custom-node combinations.
       [x] 4.1.2.3 Subtask - Implement typed reject outcomes for disallowed custom-node payloads.
 
-  [ ] 4.2 Section - Deterministic Server-Authoritative Compilation
+  [x] 4.2 Section - Deterministic Server-Authoritative Compilation
     Implement canonical compile behavior through `JidoCodeUi.Services.DslCompiler.compile/2`.
 
-    [ ] 4.2.1 Task - Implement canonical compilation and output ordering
+    [x] 4.2.1 Task - Implement canonical compilation and output ordering
       Compile validated DSL into deterministic `UnifiedIurDocument` outputs with stable ordering and hash semantics.
 
-      [ ] 4.2.1.1 Subtask - Implement canonical output ordering for IUR nodes and attributes.
-      [ ] 4.2.1.2 Subtask - Implement stable IUR hash generation for equivalent compile inputs.
-      [ ] 4.2.1.3 Subtask - Implement deterministic diagnostics ordering for compile outcomes.
+      [x] 4.2.1.1 Subtask - Implement canonical output ordering for IUR nodes and attributes.
+      [x] 4.2.1.2 Subtask - Implement stable IUR hash generation for equivalent compile inputs.
+      [x] 4.2.1.3 Subtask - Implement deterministic diagnostics ordering for compile outcomes.
 
-    [ ] 4.2.2 Task - Implement compile result contract with server authority markers
+    [x] 4.2.2 Task - Implement compile result contract with server authority markers
       Return `CompileResult` with compile authority and version metadata.
 
-      [ ] 4.2.2.1 Subtask - Implement `CompileResult` fields for `dsl_version`, `iur_version`, `iur_hash`, and diagnostics.
-      [ ] 4.2.2.2 Subtask - Implement `compile_authority: "server"` enforcement in all successful compile outcomes.
-      [ ] 4.2.2.3 Subtask - Implement typed compile failure outcomes with stage metadata.
+      [x] 4.2.2.1 Subtask - Implement `CompileResult` fields for `dsl_version`, `iur_version`, `iur_hash`, and diagnostics.
+      [x] 4.2.2.2 Subtask - Implement `compile_authority: "server"` enforcement in all successful compile outcomes.
+      [x] 4.2.2.3 Subtask - Implement typed compile failure outcomes with stage metadata.
 
   [ ] 4.3 Section - Compiler Telemetry and Failure Normalization
     Implement observability coverage for compile lifecycle and failures.

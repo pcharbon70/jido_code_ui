@@ -14,6 +14,7 @@ defmodule JidoCodeUi.Services.DslCompiler do
   @supported_dsl_versions MapSet.new(["v1"])
   @validation_stage "dsl_validation"
   @compile_stage "dsl_compile"
+  @iur_version "v1"
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
@@ -39,10 +40,19 @@ defmodule JidoCodeUi.Services.DslCompiler do
                  normalized.feature_flags,
                  normalized.continuity
                ) do
+          custom_nodes = extract_custom_nodes(normalized.dsl_document)
+          iur_document = build_iur_document(normalized)
+          iur_hash = hash_iur_document(iur_document)
+          diagnostics = compile_diagnostics(normalized, custom_nodes)
+
           {:ok,
            %{
              compile_authority: "server",
              dsl_version: normalized.dsl_version,
+             iur_version: @iur_version,
+             iur_document: iur_document,
+             iur_hash: iur_hash,
+             diagnostics: diagnostics,
              dsl_document: normalized.dsl_document,
              compile_opts: opts
            }}
@@ -75,6 +85,7 @@ defmodule JidoCodeUi.Services.DslCompiler do
        %{
          dsl_document: dsl_document,
          dsl_version: dsl_version,
+         policy_version: resolve_policy_version(compile_request, opts),
          feature_flags: feature_flags,
          continuity: continuity
        }}
@@ -384,12 +395,19 @@ defmodule JidoCodeUi.Services.DslCompiler do
       |> get_value(:custom_nodes)
       |> normalize_string_list()
 
+    from_legacy_payload =
+      dsl_document
+      |> get_map(:root)
+      |> get_map(:props)
+      |> get_value(:custom_nodes)
+      |> normalize_string_list()
+
     from_tree =
       dsl_document
       |> get_map(:root)
       |> collect_tree_custom_nodes()
 
-    (from_document ++ from_tree)
+    (from_document ++ from_legacy_payload ++ from_tree)
     |> Enum.uniq()
   end
 
@@ -423,6 +441,137 @@ defmodule JidoCodeUi.Services.DslCompiler do
 
   defp collect_tree_custom_nodes(_node), do: []
 
+  defp build_iur_document(normalized) do
+    root = normalized.dsl_document |> get_map(:root) |> canonical_iur_node()
+
+    %{
+      "iur_version" => @iur_version,
+      "dsl_version" => normalized.dsl_version,
+      "root" => root,
+      "metadata" =>
+        canonical_map(%{
+          compile_authority: "server",
+          policy_version: normalized.policy_version
+        })
+    }
+    |> canonical_map()
+  end
+
+  defp canonical_iur_node(node) when is_map(node) do
+    type = normalize_string(get_value(node, :type))
+
+    children =
+      node
+      |> get_value(:children)
+      |> case do
+        list when is_list(list) -> Enum.map(list, &canonical_iur_node/1)
+        _ -> []
+      end
+
+    base =
+      %{
+        "type" => type,
+        "props" => node |> get_map(:props) |> canonical_map(),
+        "attrs" => node |> get_map(:attrs) |> canonical_map(),
+        "children" => children
+      }
+      |> canonical_map()
+
+    case normalize_string(get_value(node, :custom_node_type)) || custom_type_from_node_type(type) do
+      nil -> base
+      custom_node_type -> Map.put(base, "custom_node_type", custom_node_type)
+    end
+  end
+
+  defp canonical_iur_node(_node) do
+    %{
+      "type" => "invalid.node",
+      "props" => %{},
+      "attrs" => %{},
+      "children" => []
+    }
+  end
+
+  defp custom_type_from_node_type("custom." <> custom_type), do: custom_type
+  defp custom_type_from_node_type(_type), do: nil
+
+  defp canonical_map(map) when is_map(map) do
+    map
+    |> Enum.map(fn {key, value} -> {to_string(key), canonical_value(value)} end)
+    |> Enum.sort_by(fn {key, _value} -> key end)
+    |> Map.new()
+  end
+
+  defp canonical_map(_map), do: %{}
+
+  defp canonical_value(value) when is_map(value), do: canonical_map(value)
+  defp canonical_value(value) when is_list(value), do: Enum.map(value, &canonical_value/1)
+  defp canonical_value(value), do: value
+
+  defp hash_iur_document(iur_document) do
+    :sha256
+    |> :crypto.hash(:erlang.term_to_binary(iur_document))
+    |> Base.encode16(case: :lower)
+  end
+
+  defp compile_diagnostics(normalized, custom_nodes) do
+    compatibility_mode =
+      normalized.dsl_document
+      |> get_map(:metadata)
+      |> get_value(:compatibility_mode)
+      |> normalize_string()
+
+    compatibility_diagnostics =
+      if compatibility_mode == "legacy_command_payload" do
+        [
+          %{
+            code: "dsl_compat_legacy_payload",
+            severity: "warning",
+            path: "$",
+            message: "Compile request used compatibility-mode legacy command payload"
+          }
+        ]
+      else
+        []
+      end
+
+    custom_node_diagnostics =
+      if custom_nodes == [] do
+        []
+      else
+        [
+          %{
+            code: "dsl_custom_nodes_compiled",
+            severity: "info",
+            path: "$.root",
+            message: "Custom DSL nodes compiled successfully",
+            custom_nodes: Enum.sort(custom_nodes)
+          }
+        ]
+      end
+
+    (compatibility_diagnostics ++ custom_node_diagnostics)
+    |> Enum.map(&canonical_map/1)
+    |> sort_diagnostics()
+  end
+
+  defp sort_diagnostics(diagnostics) do
+    Enum.sort_by(diagnostics, fn diagnostic ->
+      {
+        severity_rank(Map.get(diagnostic, "severity")),
+        Map.get(diagnostic, "code", ""),
+        Map.get(diagnostic, "path", ""),
+        Map.get(diagnostic, "message", "")
+      }
+    end)
+  end
+
+  defp severity_rank("error"), do: 0
+  defp severity_rank("warning"), do: 1
+  defp severity_rank("info"), do: 2
+  defp severity_rank("debug"), do: 3
+  defp severity_rank(_other), do: 4
+
   defp resolve_feature_flags(compile_request, opts) do
     request_flags =
       compile_request
@@ -435,6 +584,15 @@ defmodule JidoCodeUi.Services.DslCompiler do
     request_flags
     |> Map.merge(direct_flags)
     |> Map.merge(if(is_map(opts_flags), do: opts_flags, else: %{}))
+  end
+
+  defp resolve_policy_version(compile_request, opts) do
+    normalize_string(Keyword.get(opts, :policy_version)) ||
+      compile_request
+      |> get_map(:policy_decision)
+      |> get_value(:policy_version)
+      |> normalize_string() ||
+      "v1"
   end
 
   defp continuity_ids(compile_request, opts) do
