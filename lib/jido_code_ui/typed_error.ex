@@ -89,6 +89,22 @@ defmodule JidoCodeUi.TypedError do
     )
   end
 
+  @spec ingress(atom() | String.t(), String.t(), keyword()) :: t()
+  def ingress(code, message, opts \\ []) do
+    ids = continuity_ids(opts)
+
+    new(
+      error_code: to_string(code),
+      category: Keyword.get(opts, :category, "ingress"),
+      stage: Keyword.get(opts, :stage, "ingress_admission"),
+      retryable: Keyword.get(opts, :retryable, false),
+      message: message,
+      details: Keyword.get(opts, :details, %{}),
+      correlation_id: ids.correlation_id,
+      request_id: ids.request_id
+    )
+  end
+
   @spec classify_startup_failure(term(), keyword()) :: t()
   def classify_startup_failure(reason, opts \\ []) do
     stage = Keyword.get(opts, :stage, "application_start")
