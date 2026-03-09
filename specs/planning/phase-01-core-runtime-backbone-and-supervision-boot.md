@@ -36,22 +36,22 @@ Back to index: [README](./README.md)
       [x] 1.1.2.2 Subtask - Implement typed error propagation for startup and dependency failures.
       [x] 1.1.2.3 Subtask - Emit restart and escalation telemetry for recovery visibility.
 
-  [ ] 1.2 Section - Runtime Wiring and Control-Plane Boundary Enforcement
+  [x] 1.2 Section - Runtime Wiring and Control-Plane Boundary Enforcement
     Implement canonical wiring for runtime modules while enforcing ownership boundaries in the startup graph.
 
-    [ ] 1.2.1 Task - Implement runtime module child-spec wiring
+    [x] 1.2.1 Task - Implement runtime module child-spec wiring
       Wire `JidoCodeUi.Runtime.Substrate`, `JidoCodeUi.Security.Policy`, `JidoCodeUi.Services.UiOrchestrator`, `JidoCodeUi.Services.DslCompiler`, `JidoCodeUi.Services.IurRenderer`, and `JidoCodeUi.Session.RuntimeAgent` into the supervision tree.
 
-      [ ] 1.2.1.1 Subtask - Register substrate and policy services before orchestration and compile services.
-      [ ] 1.2.1.2 Subtask - Register compiler and renderer services with deterministic dependency ordering.
-      [ ] 1.2.1.3 Subtask - Register session runtime authority as a required runtime child.
+      [x] 1.2.1.1 Subtask - Register substrate and policy services before orchestration and compile services.
+      [x] 1.2.1.2 Subtask - Register compiler and renderer services with deterministic dependency ordering.
+      [x] 1.2.1.3 Subtask - Register session runtime authority as a required runtime child.
 
-    [ ] 1.2.2 Task - Implement control-plane boundary startup checks
+    [x] 1.2.2 Task - Implement control-plane boundary startup checks
       Enforce that transport modules do not own session mutation and runtime modules own state-changing semantics.
 
-      [ ] 1.2.2.1 Subtask - Implement startup assertions against control-plane ownership matrix mappings.
-      [ ] 1.2.2.2 Subtask - Implement guardrails that deny alternate ownership for session mutation paths.
-      [ ] 1.2.2.3 Subtask - Emit denied-boundary diagnostics as typed startup errors.
+      [x] 1.2.2.1 Subtask - Implement startup assertions against control-plane ownership matrix mappings.
+      [x] 1.2.2.2 Subtask - Implement guardrails that deny alternate ownership for session mutation paths.
+      [x] 1.2.2.3 Subtask - Emit denied-boundary diagnostics as typed startup errors.
 
   [ ] 1.3 Section - Startup Contracts and Typed Outcome Baseline
     Implement baseline startup contracts and typed outcomes needed by downstream phases.

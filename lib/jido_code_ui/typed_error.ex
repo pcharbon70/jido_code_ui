@@ -72,6 +72,22 @@ defmodule JidoCodeUi.TypedError do
     )
   end
 
+  @spec boundary(atom() | String.t(), String.t(), keyword()) :: t()
+  def boundary(code, message, opts \\ []) do
+    ids = continuity_ids(opts)
+
+    new(
+      error_code: to_string(code),
+      category: "boundary",
+      stage: Keyword.get(opts, :stage, "startup_boundary"),
+      retryable: Keyword.get(opts, :retryable, false),
+      message: message,
+      details: Keyword.get(opts, :details, %{}),
+      correlation_id: ids.correlation_id,
+      request_id: ids.request_id
+    )
+  end
+
   defp continuity_ids(opts) do
     %{
       correlation_id:

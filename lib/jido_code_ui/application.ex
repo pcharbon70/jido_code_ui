@@ -3,6 +3,7 @@ defmodule JidoCodeUi.Application do
 
   use Application
   alias JidoCodeUi.TypedError
+  alias JidoCodeUi.Runtime.ControlPlaneBoundary
 
   @runtime_ready_children [
     :runtime_substrate,
@@ -39,6 +40,15 @@ defmodule JidoCodeUi.Application do
     end)
   end
 
+  @spec validate_runtime_wiring([module()], %{module() => atom()}) ::
+          :ok | {:error, TypedError.t()}
+  def validate_runtime_wiring(
+        runtime_modules \\ runtime_child_order(),
+        ownership_map \\ ControlPlaneBoundary.default_ownership()
+      ) do
+    ControlPlaneBoundary.validate_runtime_wiring(runtime_modules, ownership_map)
+  end
+
   @spec supervisor_opts() :: keyword()
   def supervisor_opts do
     [
@@ -51,17 +61,19 @@ defmodule JidoCodeUi.Application do
 
   @impl true
   def start(_type, _args) do
-    case Supervisor.start_link(runtime_children(), supervisor_opts()) do
-      {:ok, _pid} = ok ->
-        ok
+    with :ok <- validate_runtime_wiring() do
+      case Supervisor.start_link(runtime_children(), supervisor_opts()) do
+        {:ok, _pid} = ok ->
+          ok
 
-      {:error, reason} ->
-        {:error,
-         TypedError.startup(:root_supervisor_start_failed, reason,
-           stage: "application_start",
-           retryable: false,
-           message: "Failed to start jido_code_ui root supervisor"
-         )}
+        {:error, reason} ->
+          {:error,
+           TypedError.startup(:root_supervisor_start_failed, reason,
+             stage: "application_start",
+             retryable: false,
+             message: "Failed to start jido_code_ui root supervisor"
+           )}
+      end
     end
   end
 end
