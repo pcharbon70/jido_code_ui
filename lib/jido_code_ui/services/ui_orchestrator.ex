@@ -95,6 +95,7 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
     with {:ok, state} <- advance_stage(state, :compile) do
       input = state.normalized_input
       policy_version = state.policy_decision.policy_version
+      compile_command = compile_command(input)
 
       Telemetry.emit("ui.dsl.compile.started.v1", %{
         route_key: state.route_key,
@@ -105,7 +106,7 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
 
       case DslCompiler.compile(
              %{
-               command: input.payload,
+               command: compile_command,
                envelope_kind: input.envelope_kind,
                route_key: state.route_key,
                policy_decision: state.policy_decision
@@ -365,6 +366,16 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
     get_value(payload, :session_id) || get_value(context, :session_id)
   end
 
+  defp compile_command(%{envelope_kind: :widget_ui_event, payload: payload})
+       when is_map(payload) do
+    %{
+      command_type: "widget_event",
+      payload: payload
+    }
+  end
+
+  defp compile_command(%{payload: payload}), do: payload
+
   defp derive_route_key(envelope_kind, payload) do
     digest = :erlang.phash2({envelope_kind, payload}, 1_000_000_000)
     "route-" <> Integer.to_string(digest)
@@ -448,12 +459,16 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
   defp success_output(state) do
     input = state.normalized_input
 
+    continuity =
+      input.continuity
+      |> Map.put(:session_id, input.session_id)
+
     %{
       status: :ok,
       route_key: state.route_key,
       stage_trace: state.stage_trace,
       envelope_kind: input.envelope_kind,
-      continuity: input.continuity,
+      continuity: continuity,
       policy: %{
         decision: state.policy_decision.decision,
         policy_version: state.policy_decision.policy_version

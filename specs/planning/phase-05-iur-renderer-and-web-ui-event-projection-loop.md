@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 5.1.2.2 Subtask - Implement render-stage `TypedError` normalization with stage metadata.
       [x] 5.1.2.3 Subtask - Emit render failure telemetry with continuity IDs and error classification.
 
-  [ ] 5.2 Section - Event Projection Loop Back to Runtime
+  [x] 5.2 Section - Event Projection Loop Back to Runtime
     Implement browser interaction event projection back through substrate admission and orchestration.
 
-    [ ] 5.2.1 Task - Implement web-ui event envelope projection contract
+    [x] 5.2.1 Task - Implement web-ui event envelope projection contract
       Define and enforce the event envelope shape used by browser interactions entering runtime.
 
-      [ ] 5.2.1.1 Subtask - Implement projection contract for widget event payloads into `WidgetUiEventEnvelope`.
-      [ ] 5.2.1.2 Subtask - Implement event correlation continuity linking render outputs to follow-on events.
-      [ ] 5.2.1.3 Subtask - Implement typed projection errors for invalid event envelope conversion.
+      [x] 5.2.1.1 Subtask - Implement projection contract for widget event payloads into `WidgetUiEventEnvelope`.
+      [x] 5.2.1.2 Subtask - Implement event correlation continuity linking render outputs to follow-on events.
+      [x] 5.2.1.3 Subtask - Implement typed projection errors for invalid event envelope conversion.
 
-    [ ] 5.2.2 Task - Implement round-trip orchestration continuity
+    [x] 5.2.2 Task - Implement round-trip orchestration continuity
       Ensure render outputs and projected events re-enter deterministic orchestrator execution paths.
 
-      [ ] 5.2.2.1 Subtask - Implement event admission handshake from renderer outputs to substrate `admit/1`.
-      [ ] 5.2.2.2 Subtask - Implement orchestrator compatibility for projected event command semantics.
-      [ ] 5.2.2.3 Subtask - Implement round-trip outcome telemetry for render-event cycles.
+      [x] 5.2.2.1 Subtask - Implement event admission handshake from renderer outputs to substrate `admit/1`.
+      [x] 5.2.2.2 Subtask - Implement orchestrator compatibility for projected event command semantics.
+      [x] 5.2.2.3 Subtask - Implement round-trip outcome telemetry for render-event cycles.
 
   [ ] 5.3 Section - Render Observability and Performance Baseline
     Implement render lifecycle telemetry and performance baselines.
