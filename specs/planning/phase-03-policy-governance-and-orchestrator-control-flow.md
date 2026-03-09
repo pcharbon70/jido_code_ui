@@ -35,22 +35,22 @@ Back to index: [README](./README.md)
       [x] 3.1.2.2 Subtask - Implement deny behavior for unsupported or disabled custom node usage.
       [x] 3.1.2.3 Subtask - Emit policy telemetry for custom-node allow/deny decisions.
 
-  [ ] 3.2 Section - Deterministic Orchestrator Routing
+  [x] 3.2 Section - Deterministic Orchestrator Routing
     Implement orchestrator routing from validated ingress to compile, session, and render flow.
 
-    [ ] 3.2.1 Task - Implement canonical execute pipeline ordering
+    [x] 3.2.1 Task - Implement canonical execute pipeline ordering
       Enforce `validate -> policy -> compile -> session -> render` in `JidoCodeUi.Services.UiOrchestrator.execute/2`.
 
-      [ ] 3.2.1.1 Subtask - Implement deterministic route-key derivation for equivalent request inputs.
-      [ ] 3.2.1.2 Subtask - Implement explicit stage-order guards preventing out-of-order execution.
-      [ ] 3.2.1.3 Subtask - Implement typed orchestration failures with stage metadata.
+      [x] 3.2.1.1 Subtask - Implement deterministic route-key derivation for equivalent request inputs.
+      [x] 3.2.1.2 Subtask - Implement explicit stage-order guards preventing out-of-order execution.
+      [x] 3.2.1.3 Subtask - Implement typed orchestration failures with stage metadata.
 
-    [ ] 3.2.2 Task - Implement denied-path and redaction-safe behavior
+    [x] 3.2.2 Task - Implement denied-path and redaction-safe behavior
       Ensure denied paths fail closed and avoid sensitive data leakage in diagnostics.
 
-      [ ] 3.2.2.1 Subtask - Implement fail-closed denied outcomes for auth and feature-flag failures.
-      [ ] 3.2.2.2 Subtask - Implement redaction for sensitive prompt/code fields in denied telemetry.
-      [ ] 3.2.2.3 Subtask - Implement denied-path observability events with continuity IDs.
+      [x] 3.2.2.1 Subtask - Implement fail-closed denied outcomes for auth and feature-flag failures.
+      [x] 3.2.2.2 Subtask - Implement redaction for sensitive prompt/code fields in denied telemetry.
+      [x] 3.2.2.3 Subtask - Implement denied-path observability events with continuity IDs.
 
   [ ] 3.3 Section - Orchestrator Contracts and Type Alignment
     Implement orchestration type compatibility with downstream compile, session, and render services.
