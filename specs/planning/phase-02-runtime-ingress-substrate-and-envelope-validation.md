@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 2.1.2.2 Subtask - Implement required default-field handling for runtime dispatch compatibility.
       [x] 2.1.2.3 Subtask - Emit normalization result telemetry including validation outcome markers.
 
-  [ ] 2.2 Section - Continuity and Auth Propagation
+  [x] 2.2 Section - Continuity and Auth Propagation
     Implement continuity and auth propagation needed by policy and orchestration layers.
 
-    [ ] 2.2.1 Task - Implement correlation continuity propagation
+    [x] 2.2.1 Task - Implement correlation continuity propagation
       Preserve and propagate `correlation_id` and `request_id` through substrate admission and dispatch.
 
-      [ ] 2.2.1.1 Subtask - Validate continuity IDs are required and well-formed at ingress.
-      [ ] 2.2.1.2 Subtask - Propagate continuity IDs to orchestrator dispatch envelopes.
-      [ ] 2.2.1.3 Subtask - Emit continuity-check telemetry for success and reject paths.
+      [x] 2.2.1.1 Subtask - Validate continuity IDs are required and well-formed at ingress.
+      [x] 2.2.1.2 Subtask - Propagate continuity IDs to orchestrator dispatch envelopes.
+      [x] 2.2.1.3 Subtask - Emit continuity-check telemetry for success and reject paths.
 
-    [ ] 2.2.2 Task - Implement auth context propagation to policy layer
+    [x] 2.2.2 Task - Implement auth context propagation to policy layer
       Attach trusted auth context in substrate output for deterministic policy decisions.
 
-      [ ] 2.2.2.1 Subtask - Normalize inbound auth context into policy-consumable shape.
-      [ ] 2.2.2.2 Subtask - Attach propagated auth context to orchestrator request envelopes.
-      [ ] 2.2.2.3 Subtask - Emit auth-propagation deny diagnostics for missing or invalid state.
+      [x] 2.2.2.1 Subtask - Normalize inbound auth context into policy-consumable shape.
+      [x] 2.2.2.2 Subtask - Attach propagated auth context to orchestrator request envelopes.
+      [x] 2.2.2.3 Subtask - Emit auth-propagation deny diagnostics for missing or invalid state.
 
   [ ] 2.3 Section - Typed Ingress Error Contracts
     Implement typed error contracts for ingress denials and malformed envelope outcomes.

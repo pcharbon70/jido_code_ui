@@ -13,6 +13,9 @@ defmodule JidoCodeUi.Runtime.Substrate do
 
   @ready_child_id :runtime_substrate
   @schema_version "v1"
+  @continuity_stage "ingress_continuity"
+  @auth_stage "ingress_auth"
+  @continuity_id_pattern ~r/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
@@ -23,10 +26,13 @@ defmodule JidoCodeUi.Runtime.Substrate do
   def admit(envelope) when is_map(envelope) do
     with :ok <- StartupGuard.ensure_ready("ingress_admission", %{operation: "admit"}),
          {:ok, normalized_envelope} <- validate_and_normalize(envelope) do
+      emit_continuity_check(:accepted, normalized_envelope)
       emit_normalization_outcome(:accepted, normalized_envelope)
       {:ok, normalized_envelope}
     else
       {:error, %TypedError{} = typed_error} ->
+        emit_continuity_check(:rejected, typed_error)
+        emit_auth_denied_diagnostics(typed_error)
         emit_normalization_outcome(:rejected, typed_error)
         {:error, typed_error}
     end
@@ -57,6 +63,14 @@ defmodule JidoCodeUi.Runtime.Substrate do
   end
 
   defp validate_and_normalize(envelope) do
+    with {:ok, normalized_payload} <- normalize_schema(envelope),
+         {:ok, continuity_ids} <- normalize_continuity(envelope),
+         {:ok, auth_context} <- normalize_auth_context(envelope, continuity_ids) do
+      {:ok, attach_runtime_context(normalized_payload, continuity_ids, auth_context)}
+    end
+  end
+
+  defp normalize_schema(envelope) do
     cond do
       command_envelope?(envelope) ->
         normalize_command_envelope(envelope)
@@ -87,15 +101,10 @@ defmodule JidoCodeUi.Runtime.Substrate do
            required_string(envelope, :session_id, "$.session_id", "UiCommand.session_id"),
          {:ok, payload} <-
            optional_map(envelope, :payload, "$.payload", "UiCommand.payload", %{}) do
-      correlation_id = get_key(envelope, :correlation_id) || default_id("cor")
-      request_id = get_key(envelope, :request_id) || default_id("req")
-
       {:ok,
        %{
          envelope_kind: :ui_command,
          schema_version: @schema_version,
-         correlation_id: correlation_id,
-         request_id: request_id,
          admitted_at: DateTime.utc_now(),
          ui_command: %{
            command_type: command_type,
@@ -103,8 +112,6 @@ defmodule JidoCodeUi.Runtime.Substrate do
            payload: payload
          },
          dispatch_context: %{
-           correlation_id: correlation_id,
-           request_id: request_id,
            session_id: session_id
          }
        }}
@@ -117,8 +124,6 @@ defmodule JidoCodeUi.Runtime.Substrate do
          {:ok, widget_id} <-
            required_string(envelope, :widget_id, "$.widget_id", "WidgetUiEventEnvelope.widget_id"),
          {:ok, data} <- optional_map(envelope, :data, "$.data", "WidgetUiEventEnvelope.data", %{}) do
-      correlation_id = get_key(envelope, :correlation_id) || default_id("cor")
-      request_id = get_key(envelope, :request_id) || default_id("req")
       widget_kind = optional_string(envelope, :widget_kind, "unknown_widget")
       timestamp = optional_timestamp(envelope, :timestamp)
 
@@ -126,8 +131,6 @@ defmodule JidoCodeUi.Runtime.Substrate do
        %{
          envelope_kind: :widget_ui_event,
          schema_version: @schema_version,
-         correlation_id: correlation_id,
-         request_id: request_id,
          admitted_at: DateTime.utc_now(),
          widget_ui_event: %{
            type: event_type,
@@ -137,12 +140,240 @@ defmodule JidoCodeUi.Runtime.Substrate do
            data: data
          },
          dispatch_context: %{
-           correlation_id: correlation_id,
-           request_id: request_id,
            widget_id: widget_id
          }
        }}
     end
+  end
+
+  defp normalize_continuity(envelope) do
+    with {:ok, correlation_id} <- validate_continuity_id(envelope, :correlation_id),
+         {:ok, request_id} <- validate_continuity_id(envelope, :request_id) do
+      {:ok, %{correlation_id: correlation_id, request_id: request_id}}
+    end
+  end
+
+  defp validate_continuity_id(envelope, key) do
+    schema_path = "$." <> Atom.to_string(key)
+
+    case get_key(envelope, key) do
+      value when is_binary(value) ->
+        trimmed = String.trim(value)
+
+        cond do
+          byte_size(trimmed) == 0 ->
+            {:error,
+             validation_error(
+               envelope,
+               "ingress_continuity_missing",
+               "#{key} is required",
+               @continuity_stage,
+               %{schema_path: schema_path, expected: "non-empty string", received: inspect(value)}
+             )}
+
+          Regex.match?(@continuity_id_pattern, trimmed) ->
+            {:ok, trimmed}
+
+          true ->
+            {:error,
+             validation_error(
+               envelope,
+               "ingress_continuity_invalid",
+               "#{key} has invalid format",
+               @continuity_stage,
+               %{
+                 schema_path: schema_path,
+                 expected: "id matching #{@continuity_id_pattern.source}",
+                 received: inspect(trimmed)
+               }
+             )}
+        end
+
+      invalid ->
+        {:error,
+         validation_error(
+           envelope,
+           "ingress_continuity_missing",
+           "#{key} is required",
+           @continuity_stage,
+           %{schema_path: schema_path, expected: "non-empty string", received: inspect(invalid)}
+         )}
+    end
+  end
+
+  defp normalize_auth_context(envelope, continuity_ids) do
+    case get_key(envelope, :auth_context) || get_key(envelope, :auth) do
+      nil ->
+        {:error,
+         validation_error(
+           continuity_ids,
+           "ingress_auth_missing",
+           "Auth context is required",
+           @auth_stage,
+           %{schema_path: "$.auth_context", expected: "map", received: "nil"}
+         )}
+
+      auth_map when is_map(auth_map) ->
+        with {:ok, subject_id} <- normalize_auth_subject(auth_map, continuity_ids),
+             {:ok, roles} <- normalize_auth_string_list(auth_map, :roles, continuity_ids),
+             {:ok, scopes} <- normalize_auth_string_list(auth_map, :scopes, continuity_ids) do
+          policy_context = normalize_policy_context(auth_map)
+          authenticated = get_boolean(auth_map, :authenticated, true)
+          actor_type = optional_string(auth_map, :actor_type, "user")
+          tenant_id = optional_string(auth_map, :tenant_id, "default")
+
+          {:ok,
+           %{
+             subject_id: subject_id,
+             actor_type: actor_type,
+             tenant_id: tenant_id,
+             authenticated: authenticated,
+             roles: roles,
+             scopes: scopes,
+             policy_context: policy_context
+           }}
+        end
+
+      invalid ->
+        {:error,
+         validation_error(
+           continuity_ids,
+           "ingress_auth_invalid",
+           "Auth context must be a map",
+           @auth_stage,
+           %{schema_path: "$.auth_context", expected: "map", received: inspect(invalid)}
+         )}
+    end
+  end
+
+  defp normalize_auth_subject(auth_map, continuity_ids) do
+    subject_id = get_key(auth_map, :subject_id) || get_key(auth_map, :actor_id)
+
+    case subject_id do
+      value when is_binary(value) ->
+        trimmed = String.trim(value)
+
+        if byte_size(trimmed) > 0 do
+          {:ok, trimmed}
+        else
+          {:error,
+           validation_error(
+             continuity_ids,
+             "ingress_auth_invalid",
+             "Auth subject is required",
+             @auth_stage,
+             %{
+               schema_path: "$.auth_context.subject_id",
+               expected: "non-empty string",
+               received: inspect(value)
+             }
+           )}
+        end
+
+      invalid ->
+        {:error,
+         validation_error(
+           continuity_ids,
+           "ingress_auth_invalid",
+           "Auth subject is required",
+           @auth_stage,
+           %{
+             schema_path: "$.auth_context.subject_id",
+             expected: "non-empty string",
+             received: inspect(invalid)
+           }
+         )}
+    end
+  end
+
+  defp normalize_auth_string_list(auth_map, key, continuity_ids) do
+    case get_key(auth_map, key) do
+      nil ->
+        {:ok, []}
+
+      list when is_list(list) ->
+        if Enum.all?(list, &is_binary/1) do
+          {:ok, list |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))}
+        else
+          {:error,
+           validation_error(
+             continuity_ids,
+             "ingress_auth_invalid",
+             "#{key} must be a list of strings",
+             @auth_stage,
+             %{
+               schema_path: "$.auth_context.#{key}",
+               expected: "list(string)",
+               received: inspect(list)
+             }
+           )}
+        end
+
+      invalid ->
+        {:error,
+         validation_error(
+           continuity_ids,
+           "ingress_auth_invalid",
+           "#{key} must be a list of strings",
+           @auth_stage,
+           %{
+             schema_path: "$.auth_context.#{key}",
+             expected: "list(string)",
+             received: inspect(invalid)
+           }
+         )}
+    end
+  end
+
+  defp normalize_policy_context(auth_map) do
+    policy_context = get_key(auth_map, :policy_context)
+
+    policy_version =
+      case policy_context do
+        value when is_map(value) ->
+          get_key(value, :policy_version) || get_key(auth_map, :policy_version) || "v1"
+
+        _ ->
+          get_key(auth_map, :policy_version) || "v1"
+      end
+
+    %{
+      policy_version: to_string(policy_version)
+    }
+  end
+
+  defp get_boolean(map, key, default) do
+    case get_key(map, key) do
+      value when is_boolean(value) -> value
+      _ -> default
+    end
+  end
+
+  defp attach_runtime_context(normalized_payload, continuity_ids, auth_context) do
+    dispatch_context =
+      normalized_payload.dispatch_context
+      |> Map.merge(continuity_ids)
+      |> Map.put(:auth_context, auth_context)
+
+    orchestrator_context =
+      dispatch_context
+      |> Map.put(:envelope_kind, normalized_payload.envelope_kind)
+      |> Map.put(:policy_context, auth_context.policy_context)
+
+    payload =
+      case normalized_payload.envelope_kind do
+        :ui_command -> normalized_payload.ui_command
+        :widget_ui_event -> normalized_payload.widget_ui_event
+      end
+
+    normalized_payload
+    |> Map.merge(continuity_ids)
+    |> Map.put(:auth_context, auth_context)
+    |> Map.put(:dispatch_context, dispatch_context)
+    |> Map.put(:orchestrator_envelope, %{
+      payload: payload,
+      context: orchestrator_context
+    })
   end
 
   defp command_envelope?(envelope) do
@@ -255,12 +486,12 @@ defmodule JidoCodeUi.Runtime.Substrate do
     end
   end
 
-  defp validation_error(envelope, error_code, message, stage, details) do
-    {correlation_id, request_id} = continuity_ids_from(envelope)
+  defp validation_error(source, error_code, message, stage, details, category \\ "validation") do
+    {correlation_id, request_id} = continuity_ids_from(source)
 
     TypedError.new(
       error_code: error_code,
-      category: "validation",
+      category: category,
       stage: stage,
       retryable: false,
       message: message,
@@ -270,11 +501,13 @@ defmodule JidoCodeUi.Runtime.Substrate do
     )
   end
 
-  defp continuity_ids_from(envelope) do
-    correlation_id = get_key(envelope, :correlation_id)
-    request_id = get_key(envelope, :request_id)
+  defp continuity_ids_from(source) when is_map(source) do
+    correlation_id = get_key(source, :correlation_id)
+    request_id = get_key(source, :request_id)
     {normalize_or_default_id(correlation_id, "cor"), normalize_or_default_id(request_id, "req")}
   end
+
+  defp continuity_ids_from(_source), do: {default_id("cor"), default_id("req")}
 
   defp normalize_or_default_id(value, prefix) when is_binary(value) do
     trimmed = String.trim(value)
@@ -307,6 +540,37 @@ defmodule JidoCodeUi.Runtime.Substrate do
       correlation_id: typed_error.correlation_id,
       request_id: typed_error.request_id
     })
+  end
+
+  defp emit_continuity_check(:accepted, normalized_envelope) when is_map(normalized_envelope) do
+    Telemetry.emit("ui.ingress.continuity.checked.v1", %{
+      outcome: "accepted",
+      correlation_id: normalized_envelope.correlation_id,
+      request_id: normalized_envelope.request_id,
+      envelope_kind: to_string(normalized_envelope.envelope_kind)
+    })
+  end
+
+  defp emit_continuity_check(:rejected, %TypedError{} = typed_error) do
+    if typed_error.stage == @continuity_stage do
+      Telemetry.emit("ui.ingress.continuity.checked.v1", %{
+        outcome: "rejected",
+        error_code: typed_error.error_code,
+        correlation_id: typed_error.correlation_id,
+        request_id: typed_error.request_id
+      })
+    end
+  end
+
+  defp emit_auth_denied_diagnostics(%TypedError{} = typed_error) do
+    if typed_error.stage == @auth_stage do
+      Telemetry.emit("ui.ingress.auth.denied.v1", %{
+        error_code: typed_error.error_code,
+        correlation_id: typed_error.correlation_id,
+        request_id: typed_error.request_id,
+        details: typed_error.details
+      })
+    end
   end
 
   defp default_id(prefix) do
