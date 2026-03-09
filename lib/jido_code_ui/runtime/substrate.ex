@@ -5,6 +5,7 @@ defmodule JidoCodeUi.Runtime.Substrate do
 
   use GenServer
 
+  alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.TypedError
 
@@ -17,13 +18,8 @@ defmodule JidoCodeUi.Runtime.Substrate do
 
   @spec admit(map()) :: {:ok, map()} | {:error, TypedError.t()}
   def admit(envelope) when is_map(envelope) do
-    if StartupLifecycle.ready?() do
+    with :ok <- StartupGuard.ensure_ready("ingress_admission", %{operation: "admit"}) do
       {:ok, normalize_envelope(envelope)}
-    else
-      {:error,
-       TypedError.readiness("Runtime is not ready for ingress admission",
-         stage: "ingress_admission"
-       )}
     end
   end
 

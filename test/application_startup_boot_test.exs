@@ -1,10 +1,28 @@
 defmodule JidoCodeUi.ApplicationStartupBootTest do
   use ExUnit.Case, async: false
 
+  alias JidoCodeUi.Services.DslCompiler
+  alias JidoCodeUi.Services.IurRenderer
+  alias JidoCodeUi.Services.UiOrchestrator
   alias JidoCodeUi.Runtime.ControlPlaneBoundary
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.Runtime.Substrate
+  alias JidoCodeUi.Session.RuntimeAgent
   alias JidoCodeUi.TypedError
+
+  defmodule FailingStartupChild do
+    def child_spec(_opts) do
+      %{
+        id: __MODULE__,
+        start: {__MODULE__, :start_link, [[]]},
+        restart: :temporary
+      }
+    end
+
+    def start_link(_opts) do
+      {:error, :dependency_crash}
+    end
+  end
 
   setup do
     defaults = JidoCodeUi.Application.runtime_ready_children()
@@ -83,6 +101,60 @@ defmodule JidoCodeUi.ApplicationStartupBootTest do
               error_code: "session_authority_violation",
               stage: "session_mutation_authority"
             }} = ControlPlaneBoundary.authorize_session_mutation(JidoCodeUi.Runtime.Substrate)
+  end
+
+  test "startup contract interfaces return readiness error before startup is ready" do
+    :ok = StartupLifecycle.set_expected_children([:runtime_substrate, :missing_dependency])
+
+    assert {:error, %TypedError{error_code: "startup_not_ready", stage: "ingress_admission"}} =
+             Substrate.admit(%{payload: "blocked"})
+
+    assert {:error, %TypedError{error_code: "startup_not_ready", stage: "orchestrator_execute"}} =
+             UiOrchestrator.execute(%{command: "noop"})
+
+    assert {:error, %TypedError{error_code: "startup_not_ready", stage: "dsl_compile"}} =
+             DslCompiler.compile(%{dsl: %{}})
+
+    assert {:error, %TypedError{error_code: "startup_not_ready", stage: "iur_render"}} =
+             IurRenderer.render(%{iur: %{}})
+
+    assert {:error, %TypedError{error_code: "startup_not_ready", stage: "session_runtime_create"}} =
+             RuntimeAgent.create_session(%{})
+  end
+
+  test "startup dependency faults are normalized into typed startup errors" do
+    previous_trap_exit = Process.flag(:trap_exit, true)
+    on_exit(fn -> Process.flag(:trap_exit, previous_trap_exit) end)
+
+    supervisor_opts = [strategy: :one_for_one]
+
+    assert {:error,
+            %TypedError{
+              category: "startup",
+              error_code: "dependency_start_failed",
+              stage: "application_start"
+            }} =
+             JidoCodeUi.Application.start_root(
+               [FailingStartupChild],
+               supervisor_opts
+             )
+  end
+
+  test "typed startup failure classification supports timeout and default categories" do
+    timeout_error =
+      TypedError.classify_startup_failure(:timeout, stage: "application_start")
+
+    assert timeout_error.error_code == "startup_timeout"
+    assert timeout_error.category == "startup"
+    assert timeout_error.stage == "application_start"
+
+    generic_error =
+      TypedError.classify_startup_failure({:shutdown, :unknown_reason},
+        stage: "application_start"
+      )
+
+    assert generic_error.error_code == "root_supervisor_start_failed"
+    assert generic_error.category == "startup"
   end
 
   test "ingress admission is blocked before readiness" do

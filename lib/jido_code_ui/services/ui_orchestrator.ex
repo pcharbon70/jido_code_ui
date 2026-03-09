@@ -5,7 +5,9 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
 
   use GenServer
 
+  alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
+  alias JidoCodeUi.TypedError
 
   @ready_child_id :ui_orchestrator
 
@@ -14,9 +16,11 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec execute(map(), map()) :: {:ok, map()}
+  @spec execute(map(), map()) :: {:ok, map()} | {:error, TypedError.t()}
   def execute(command, context \\ %{}) when is_map(context) do
-    {:ok, %{command: command, context: context, status: :accepted}}
+    with :ok <- StartupGuard.ensure_ready("orchestrator_execute", %{operation: "execute"}) do
+      {:ok, %{command: command, context: context, status: :accepted}}
+    end
   end
 
   @impl true

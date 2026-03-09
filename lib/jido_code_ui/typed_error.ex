@@ -43,6 +43,7 @@ defmodule JidoCodeUi.TypedError do
   @spec startup(atom() | String.t(), term(), keyword()) :: t()
   def startup(code, reason, opts \\ []) do
     ids = continuity_ids(opts)
+    details = Map.merge(%{reason: inspect(reason)}, Keyword.get(opts, :details, %{}))
 
     new(
       error_code: to_string(code),
@@ -50,7 +51,7 @@ defmodule JidoCodeUi.TypedError do
       stage: Keyword.get(opts, :stage, "root_boot"),
       retryable: Keyword.get(opts, :retryable, false),
       message: Keyword.get(opts, :message, "Startup failure"),
-      details: %{reason: inspect(reason)},
+      details: details,
       correlation_id: ids.correlation_id,
       request_id: ids.request_id
     )
@@ -86,6 +87,42 @@ defmodule JidoCodeUi.TypedError do
       correlation_id: ids.correlation_id,
       request_id: ids.request_id
     )
+  end
+
+  @spec classify_startup_failure(term(), keyword()) :: t()
+  def classify_startup_failure(reason, opts \\ []) do
+    stage = Keyword.get(opts, :stage, "application_start")
+
+    case reason do
+      {:shutdown, {:failed_to_start_child, child, child_reason}} ->
+        startup(:dependency_start_failed, child_reason,
+          stage: stage,
+          retryable: true,
+          message: "A required runtime child failed to start",
+          details: %{child: inspect(child)}
+        )
+
+      {:shutdown, {:timeout, timeout_reason}} ->
+        startup(:startup_timeout, timeout_reason,
+          stage: stage,
+          retryable: true,
+          message: "Runtime startup timed out"
+        )
+
+      :timeout ->
+        startup(:startup_timeout, reason,
+          stage: stage,
+          retryable: true,
+          message: "Runtime startup timed out"
+        )
+
+      other ->
+        startup(:root_supervisor_start_failed, other,
+          stage: stage,
+          retryable: false,
+          message: "Failed to start jido_code_ui root supervisor"
+        )
+    end
   end
 
   defp continuity_ids(opts) do

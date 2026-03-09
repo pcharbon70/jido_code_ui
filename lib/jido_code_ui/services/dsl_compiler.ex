@@ -5,7 +5,9 @@ defmodule JidoCodeUi.Services.DslCompiler do
 
   use GenServer
 
+  alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
+  alias JidoCodeUi.TypedError
 
   @ready_child_id :dsl_compiler
 
@@ -14,14 +16,16 @@ defmodule JidoCodeUi.Services.DslCompiler do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec compile(map(), keyword()) :: {:ok, map()}
+  @spec compile(map(), keyword()) :: {:ok, map()} | {:error, TypedError.t()}
   def compile(dsl_document, opts \\ []) when is_list(opts) do
-    {:ok,
-     %{
-       compile_authority: "server",
-       dsl_document: dsl_document,
-       compile_opts: opts
-     }}
+    with :ok <- StartupGuard.ensure_ready("dsl_compile", %{operation: "compile"}) do
+      {:ok,
+       %{
+         compile_authority: "server",
+         dsl_document: dsl_document,
+         compile_opts: opts
+       }}
+    end
   end
 
   @impl true

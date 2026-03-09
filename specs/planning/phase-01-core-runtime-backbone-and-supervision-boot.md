@@ -53,22 +53,22 @@ Back to index: [README](./README.md)
       [x] 1.2.2.2 Subtask - Implement guardrails that deny alternate ownership for session mutation paths.
       [x] 1.2.2.3 Subtask - Emit denied-boundary diagnostics as typed startup errors.
 
-  [ ] 1.3 Section - Startup Contracts and Typed Outcome Baseline
+  [x] 1.3 Section - Startup Contracts and Typed Outcome Baseline
     Implement baseline startup contracts and typed outcomes needed by downstream phases.
 
-    [ ] 1.3.1 Task - Implement startup contract interfaces for downstream runtime calls
+    [x] 1.3.1 Task - Implement startup contract interfaces for downstream runtime calls
       Ensure startup and readiness expose required interfaces for admission, orchestration, compile, render, and session control.
 
-      [ ] 1.3.1.1 Subtask - Define startup availability contract for `JidoCodeUi.Runtime.Substrate.admit/1`.
-      [ ] 1.3.1.2 Subtask - Define startup availability contract for `JidoCodeUi.Services.UiOrchestrator.execute/2`.
-      [ ] 1.3.1.3 Subtask - Define startup availability contracts for `compile/2`, `render/2`, and session runtime APIs.
+      [x] 1.3.1.1 Subtask - Define startup availability contract for `JidoCodeUi.Runtime.Substrate.admit/1`.
+      [x] 1.3.1.2 Subtask - Define startup availability contract for `JidoCodeUi.Services.UiOrchestrator.execute/2`.
+      [x] 1.3.1.3 Subtask - Define startup availability contracts for `compile/2`, `render/2`, and session runtime APIs.
 
-    [ ] 1.3.2 Task - Implement root typed error normalization
+    [x] 1.3.2 Task - Implement root typed error normalization
       Normalize startup failures into typed error outcomes that preserve continuity metadata.
 
-      [ ] 1.3.2.1 Subtask - Define startup `TypedError` categories for dependency, timeout, and boundary failures.
-      [ ] 1.3.2.2 Subtask - Normalize root startup failure envelopes with stage metadata.
-      [ ] 1.3.2.3 Subtask - Validate `TypedError` shape compatibility with conformance scenarios.
+      [x] 1.3.2.1 Subtask - Define startup `TypedError` categories for dependency, timeout, and boundary failures.
+      [x] 1.3.2.2 Subtask - Normalize root startup failure envelopes with stage metadata.
+      [x] 1.3.2.3 Subtask - Validate `TypedError` shape compatibility with conformance scenarios.
 
   [ ] 1.4 Section - Phase 1 Integration Tests
     Validate startup ordering, boundary enforcement, and typed startup outcomes end-to-end.

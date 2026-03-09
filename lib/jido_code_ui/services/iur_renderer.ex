@@ -5,7 +5,9 @@ defmodule JidoCodeUi.Services.IurRenderer do
 
   use GenServer
 
+  alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
+  alias JidoCodeUi.TypedError
 
   @ready_child_id :iur_renderer
 
@@ -14,14 +16,16 @@ defmodule JidoCodeUi.Services.IurRenderer do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec render(map(), keyword()) :: {:ok, map()}
+  @spec render(map(), keyword()) :: {:ok, map()} | {:error, TypedError.t()}
   def render(iur_document, opts \\ []) when is_list(opts) do
-    {:ok,
-     %{
-       rendered: true,
-       projection: iur_document,
-       render_opts: opts
-     }}
+    with :ok <- StartupGuard.ensure_ready("iur_render", %{operation: "render"}) do
+      {:ok,
+       %{
+         rendered: true,
+         projection: iur_document,
+         render_opts: opts
+       }}
+    end
   end
 
   @impl true

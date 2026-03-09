@@ -59,21 +59,27 @@ defmodule JidoCodeUi.Application do
     ]
   end
 
-  @impl true
-  def start(_type, _args) do
-    with :ok <- validate_runtime_wiring() do
-      case Supervisor.start_link(runtime_children(), supervisor_opts()) do
+  @spec start_root([Supervisor.child_spec() | {module(), keyword()} | module()], keyword()) ::
+          {:ok, pid()} | {:error, TypedError.t()}
+  def start_root(children \\ runtime_children(), opts \\ supervisor_opts()) do
+    try do
+      case Supervisor.start_link(children, opts) do
         {:ok, _pid} = ok ->
           ok
 
         {:error, reason} ->
-          {:error,
-           TypedError.startup(:root_supervisor_start_failed, reason,
-             stage: "application_start",
-             retryable: false,
-             message: "Failed to start jido_code_ui root supervisor"
-           )}
+          {:error, TypedError.classify_startup_failure(reason, stage: "application_start")}
       end
+    catch
+      :exit, reason ->
+        {:error, TypedError.classify_startup_failure(reason, stage: "application_start")}
+    end
+  end
+
+  @impl true
+  def start(_type, _args) do
+    with :ok <- validate_runtime_wiring() do
+      start_root()
     end
   end
 end
