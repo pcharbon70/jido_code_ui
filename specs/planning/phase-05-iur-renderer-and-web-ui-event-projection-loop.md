@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - Browser events re-enter runtime through validated substrate admission.
 - Phase SCN focus: `SCN-003`, `SCN-004`, `SCN-005`.
 
-[ ] 5 Phase 5 - IUR Renderer and Web UI Event Projection Loop
+[x] 5 Phase 5 - IUR Renderer and Web UI Event Projection Loop
   Implement deterministic IUR rendering to `web-ui` contracts and close the projection loop from browser events back into runtime admission.
 
   [x] 5.1 Section - Canonical IUR-to-Web UI Rendering
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 5.3.2.2 Subtask - Implement render success/failure counters by outcome category.
       [x] 5.3.2.3 Subtask - Implement round-trip latency metric across compile-render-event loop boundaries.
 
-  [ ] 5.4 Section - Phase 5 Integration Tests
+  [x] 5.4 Section - Phase 5 Integration Tests
     Validate render projection, event loop continuity, and typed render failure handling end-to-end.
 
-    [ ] 5.4.1 Task - Compile-render-event round-trip integration scenarios
+    [x] 5.4.1 Task - Compile-render-event round-trip integration scenarios
       Verify canonical render outputs project browser events that re-enter runtime deterministically.
 
-      [ ] 5.4.1.1 Subtask - Verify canonical IUR outputs map to deterministic web-ui projection payloads.
-      [ ] 5.4.1.2 Subtask - Verify projected browser events are admitted and routed through orchestrator paths.
-      [ ] 5.4.1.3 Subtask - Verify continuity metadata is preserved across the full round-trip cycle.
+      [x] 5.4.1.1 Subtask - Verify canonical IUR outputs map to deterministic web-ui projection payloads.
+      [x] 5.4.1.2 Subtask - Verify projected browser events are admitted and routed through orchestrator paths.
+      [x] 5.4.1.3 Subtask - Verify continuity metadata is preserved across the full round-trip cycle.
 
-    [ ] 5.4.2 Task - Render failure and telemetry integration scenarios
+    [x] 5.4.2 Task - Render failure and telemetry integration scenarios
       Verify render-stage failures normalize into typed outcomes and emit required telemetry.
 
-      [ ] 5.4.2.1 Subtask - Verify invalid IUR inputs fail with stage-tagged typed render errors.
-      [ ] 5.4.2.2 Subtask - Verify render lifecycle events are emitted for success and failure outcomes.
-      [ ] 5.4.2.3 Subtask - Verify render metrics and round-trip latency telemetry coverage.
+      [x] 5.4.2.1 Subtask - Verify invalid IUR inputs fail with stage-tagged typed render errors.
+      [x] 5.4.2.2 Subtask - Verify render lifecycle events are emitted for success and failure outcomes.
+      [x] 5.4.2.3 Subtask - Verify render metrics and round-trip latency telemetry coverage.
