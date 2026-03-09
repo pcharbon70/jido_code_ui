@@ -345,10 +345,18 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
   end
 
   defp select_policy_context(auth_context, context) do
-    first_non_empty_map([
-      get_map(context, :policy_context),
-      get_map(auth_context, :policy_context)
-    ])
+    context_policy_context = get_map(context, :policy_context)
+    auth_policy_context = get_map(auth_context, :policy_context)
+
+    merged_feature_flags =
+      Map.merge(
+        get_map(auth_policy_context, :feature_flags),
+        get_map(context_policy_context, :feature_flags)
+      )
+
+    auth_policy_context
+    |> Map.merge(context_policy_context)
+    |> put_feature_flags(merged_feature_flags)
   end
 
   defp session_id(payload, context) do
@@ -498,6 +506,14 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
   end
 
   defp get_map(_map, _key), do: %{}
+
+  defp put_feature_flags(policy_context, feature_flags) do
+    if feature_flags == %{} do
+      policy_context
+    else
+      Map.put(policy_context, :feature_flags, feature_flags)
+    end
+  end
 
   defp get_value(map, key) when is_map(map) do
     Map.get(map, key) || Map.get(map, Atom.to_string(key))

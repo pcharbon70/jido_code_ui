@@ -15,7 +15,7 @@ Back to index: [README](./README.md)
 - Orchestrator routing is deterministic for equivalent validated inputs.
 - Phase SCN focus: `SCN-002`, `SCN-006`, `SCN-007`, `SCN-008`.
 
-[ ] 3 Phase 3 - Policy Governance and Orchestrator Control Flow
+[x] 3 Phase 3 - Policy Governance and Orchestrator Control Flow
   Implement deterministic orchestrator execution with explicit policy governance, deny behavior, and feature-flag custom-node controls.
 
   [x] 3.1 Section - Policy Authority and Feature-Flag Governance
@@ -69,19 +69,19 @@ Back to index: [README](./README.md)
       [x] 3.3.2.2 Subtask - Emit stage transition events covering compile, session, and render stages.
       [x] 3.3.2.3 Subtask - Emit orchestrator outcome metrics for success, deny, and failure branches.
 
-  [ ] 3.4 Section - Phase 3 Integration Tests
+  [x] 3.4 Section - Phase 3 Integration Tests
     Validate policy gating, deterministic orchestration flow, and denied-path behavior end-to-end.
 
-    [ ] 3.4.1 Task - Policy allow/deny integration scenarios
+    [x] 3.4.1 Task - Policy allow/deny integration scenarios
       Verify policy decisions and feature flags deterministically gate orchestrator execution.
 
-      [ ] 3.4.1.1 Subtask - Verify authorized commands pass to compile stage with policy metadata.
-      [ ] 3.4.1.2 Subtask - Verify unauthorized commands fail closed before compile or session mutation.
-      [ ] 3.4.1.3 Subtask - Verify custom-node commands are allowed only with enabled feature flags.
+      [x] 3.4.1.1 Subtask - Verify authorized commands pass to compile stage with policy metadata.
+      [x] 3.4.1.2 Subtask - Verify unauthorized commands fail closed before compile or session mutation.
+      [x] 3.4.1.3 Subtask - Verify custom-node commands are allowed only with enabled feature flags.
 
-    [ ] 3.4.2 Task - Orchestrator routing and denied-path integration scenarios
+    [x] 3.4.2 Task - Orchestrator routing and denied-path integration scenarios
       Verify deterministic stage ordering and redaction-safe denied telemetry.
 
-      [ ] 3.4.2.1 Subtask - Verify equivalent inputs produce identical `execute/2` routing outcomes.
-      [ ] 3.4.2.2 Subtask - Verify denied-path failures emit typed errors and required audit events.
-      [ ] 3.4.2.3 Subtask - Verify denied-path telemetry redacts sensitive command payload fields.
+      [x] 3.4.2.1 Subtask - Verify equivalent inputs produce identical `execute/2` routing outcomes.
+      [x] 3.4.2.2 Subtask - Verify denied-path failures emit typed errors and required audit events.
+      [x] 3.4.2.3 Subtask - Verify denied-path telemetry redacts sensitive command payload fields.
