@@ -173,14 +173,23 @@ defmodule JidoCodeUi.ApplicationStartupBootTest do
 
     assert {:ok, admitted} =
              Substrate.admit(%{
+               command_type: "open_file",
+               session_id: "sess-fixed",
                correlation_id: "cor-fixed",
                request_id: "req-fixed",
-               payload: "accepted"
+               payload: %{path: "lib/foo.ex"},
+               auth_context: %{
+                 subject_id: "usr-fixed",
+                 roles: ["editor"],
+                 scopes: ["files:read"]
+               }
              })
 
     assert admitted.correlation_id == "cor-fixed"
     assert admitted.request_id == "req-fixed"
-    assert admitted.payload == "accepted"
+    assert admitted.ui_command.command_type == "open_file"
+    assert admitted.ui_command.payload == %{path: "lib/foo.ex"}
+    assert admitted.auth_context.subject_id == "usr-fixed"
     assert Map.has_key?(admitted, :admitted_at)
   end
 

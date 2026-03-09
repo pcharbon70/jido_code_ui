@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - Auth context propagation is required for policy-authority decisions.
 - Phase SCN focus: `SCN-002`, `SCN-003`, `SCN-006`, `SCN-008`.
 
-[ ] 2 Phase 2 - Runtime Ingress Substrate and Envelope Validation
+[x] 2 Phase 2 - Runtime Ingress Substrate and Envelope Validation
   Implement ingress substrate behavior for envelope validation, normalization, continuity propagation, and typed reject outcomes.
 
   [x] 2.1 Section - Envelope Schema Validation and Normalization
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 2.3.2.2 Subtask - Emit denied admission events with reason and policy context.
       [x] 2.3.2.3 Subtask - Emit ingress failure metrics for malformed and unauthorized attempts.
 
-  [ ] 2.4 Section - Phase 2 Integration Tests
+  [x] 2.4 Section - Phase 2 Integration Tests
     Validate ingress schema behavior, continuity propagation, and typed reject outcomes end-to-end.
 
-    [ ] 2.4.1 Task - Malformed payload and rejection integration scenarios
+    [x] 2.4.1 Task - Malformed payload and rejection integration scenarios
       Verify malformed and invalid ingress envelopes are denied before orchestration dispatch.
 
-      [ ] 2.4.1.1 Subtask - Verify malformed `UiCommand` payloads fail with typed schema errors.
-      [ ] 2.4.1.2 Subtask - Verify malformed `WidgetUiEventEnvelope` payloads fail with typed schema errors.
-      [ ] 2.4.1.3 Subtask - Verify denied paths emit required ingress telemetry and diagnostics.
+      [x] 2.4.1.1 Subtask - Verify malformed `UiCommand` payloads fail with typed schema errors.
+      [x] 2.4.1.2 Subtask - Verify malformed `WidgetUiEventEnvelope` payloads fail with typed schema errors.
+      [x] 2.4.1.3 Subtask - Verify denied paths emit required ingress telemetry and diagnostics.
 
-    [ ] 2.4.2 Task - Continuity and auth propagation integration scenarios
+    [x] 2.4.2 Task - Continuity and auth propagation integration scenarios
       Verify admitted envelopes preserve continuity and auth data into orchestrator inputs.
 
-      [ ] 2.4.2.1 Subtask - Verify continuity IDs propagate unchanged into orchestrator execution inputs.
-      [ ] 2.4.2.2 Subtask - Verify auth context propagation supports downstream policy calls.
-      [ ] 2.4.2.3 Subtask - Verify admit outcomes satisfy SCN continuity and authorization expectations.
+      [x] 2.4.2.1 Subtask - Verify continuity IDs propagate unchanged into orchestrator execution inputs.
+      [x] 2.4.2.2 Subtask - Verify auth context propagation supports downstream policy calls.
+      [x] 2.4.2.3 Subtask - Verify admit outcomes satisfy SCN continuity and authorization expectations.
