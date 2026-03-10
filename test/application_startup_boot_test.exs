@@ -224,6 +224,33 @@ defmodule JidoCodeUi.ApplicationStartupBootTest do
            end)
   end
 
+  test "startup lifecycle exposes canonical child ordering in APIs and events" do
+    probe_a = :runtime_probe_child_a
+    probe_b = :runtime_probe_child_b
+    expected_children = [probe_a, probe_b]
+
+    :ok = StartupLifecycle.set_expected_children([probe_b, probe_a])
+    assert StartupLifecycle.expected_children() == expected_children
+
+    :ok = StartupLifecycle.mark_child_ready(probe_b)
+    :ok = StartupLifecycle.mark_child_ready(probe_a)
+
+    assert_eventually(fn ->
+      Enum.any?(StartupLifecycle.recent_events(200), fn event ->
+        event.event == :startup_child_ready and
+          event.child == probe_a and
+          event.ready_children == Enum.sort_by(event.ready_children, &Atom.to_string/1) and
+          Enum.all?(expected_children, &(&1 in event.ready_children))
+      end)
+    end)
+
+    assert Enum.any?(StartupLifecycle.recent_events(200), fn event ->
+             event.event == :startup_ready and
+               event.expected_children == expected_children and
+               event.ready_children == expected_children
+           end)
+  end
+
   test "restart telemetry is emitted when a child restarts" do
     policy_pid = Process.whereis(JidoCodeUi.Security.Policy)
     assert is_pid(policy_pid)
