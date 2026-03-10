@@ -11,7 +11,6 @@ defmodule JidoCodeUi.Observability.Telemetry do
   @events_table :jido_code_ui_telemetry_events
   @max_events 5000
   @session_join_key_events MapSet.new([
-                             "ui.command.received.v1",
                              "ui.session.transition.v1",
                              "ui.session.failure.v1",
                              "ui.session.retention.applied.v1",
@@ -101,7 +100,7 @@ defmodule JidoCodeUi.Observability.Telemetry do
   end
 
   defp emit_contract_diagnostics(event_name, event) do
-    required_keys = required_keys_for_event(event_name)
+    required_keys = required_keys_for_event(event_name, event)
     missing_keys = missing_keys(event, required_keys)
 
     if missing_keys != [] do
@@ -224,7 +223,20 @@ defmodule JidoCodeUi.Observability.Telemetry do
     :ok
   end
 
-  defp required_keys_for_event(event_name) do
+  defp required_keys_for_event("ui.command.received.v1", event) do
+    base_keys =
+      if ui_event?("ui.command.received.v1"), do: [:correlation_id, :request_id], else: []
+
+    case normalize_string(get_value(event, :envelope_kind)) do
+      "widget_ui_event" ->
+        base_keys
+
+      _ ->
+        base_keys ++ [:session_id]
+    end
+  end
+
+  defp required_keys_for_event(event_name, _event) do
     base_keys =
       if ui_event?(event_name), do: [:correlation_id, :request_id], else: []
 

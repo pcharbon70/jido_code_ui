@@ -38,6 +38,21 @@ defmodule JidoCodeUi.TelemetryEventContractTest do
            end)
   end
 
+  test "widget command received events do not require session join keys" do
+    :ok =
+      Telemetry.emit("ui.command.received.v1", %{
+        envelope_kind: "widget_ui_event"
+      })
+
+    events = Telemetry.recent_events(20)
+
+    refute Enum.any?(events, fn event ->
+             event.event_name == "ui.telemetry.validation.failed.v1" and
+               event.source_event == "ui.command.received.v1" and
+               "session_id" in event.missing_keys
+           end)
+  end
+
   test "non-ui telemetry events are not forced through ui join-key contracts" do
     :ok = Telemetry.emit("runtime.startup.sample", %{child: :runtime_substrate})
 
