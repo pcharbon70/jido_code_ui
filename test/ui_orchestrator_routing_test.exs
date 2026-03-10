@@ -111,6 +111,31 @@ defmodule JidoCodeUi.UiOrchestratorRoutingTest do
     assert get_in(denied_event, [:redacted_command, :payload, :contents]) == "[REDACTED]"
   end
 
+  test "execute treats explicit nil continuity context keys as authoritative" do
+    admitted =
+      admit_command(%{
+        correlation_id: "cor-route-authoritative",
+        request_id: "req-route-authoritative"
+      })
+
+    assert {:ok, result} =
+             UiOrchestrator.execute(admitted, %{correlation_id: nil, request_id: nil})
+
+    assert String.starts_with?(result.continuity.correlation_id, "cor-")
+    assert String.starts_with?(result.continuity.request_id, "req-")
+    refute result.continuity.correlation_id == "cor-route-authoritative"
+    refute result.continuity.request_id == "req-route-authoritative"
+  end
+
+  test "execute prefers context session_id over payload session_id" do
+    admitted = admit_command(%{session_id: "sess-payload-wins-previously"})
+
+    assert {:ok, result} =
+             UiOrchestrator.execute(admitted, %{session_id: "sess-context-authoritative"})
+
+    assert result.session.session_id == "sess-context-authoritative"
+  end
+
   test "execute returns typed validation errors for unsupported command shapes" do
     assert {:error,
             %TypedError{
