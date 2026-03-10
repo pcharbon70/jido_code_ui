@@ -4,6 +4,7 @@ defmodule JidoCodeUi.TypedError do
   """
 
   @conformance_rules [
+    %{prefix: "session_authority_violation", category: "boundary", stage_prefix: "session_"},
     %{prefix: "ingress_", category: "ingress", stage_prefix: "ingress_"},
     %{prefix: "policy_", category: "policy", stage_prefix: "policy_"},
     %{prefix: "dsl_", category: "compile", stage_prefix: "dsl_"},
