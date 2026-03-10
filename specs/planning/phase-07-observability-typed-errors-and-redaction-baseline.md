@@ -18,22 +18,22 @@ Back to index: [README](./README.md)
 [ ] 7 Phase 7 - Observability Typed Errors and Redaction Baseline
   Implement observability event families, metrics baselines, typed error normalization, and redaction controls across the full runtime pipeline.
 
-  [ ] 7.1 Section - Required Event Family Coverage
+  [x] 7.1 Section - Required Event Family Coverage
     Implement required lifecycle event coverage for ingest, policy, compile, render, and failure paths.
 
-    [ ] 7.1.1 Task - Implement structured event emission contracts
+    [x] 7.1.1 Task - Implement structured event emission contracts
       Emit required observability events with continuity keys and stage metadata.
 
-      [ ] 7.1.1.1 Subtask - Implement event schema contracts for command, policy, compile, and render lifecycle families.
-      [ ] 7.1.1.2 Subtask - Implement event emission from substrate, orchestrator, compiler, and renderer paths.
-      [ ] 7.1.1.3 Subtask - Implement event versioning markers for schema governance.
+      [x] 7.1.1.1 Subtask - Implement event schema contracts for command, policy, compile, and render lifecycle families.
+      [x] 7.1.1.2 Subtask - Implement event emission from substrate, orchestrator, compiler, and renderer paths.
+      [x] 7.1.1.3 Subtask - Implement event versioning markers for schema governance.
 
-    [ ] 7.1.2 Task - Implement event continuity and join-key enforcement
+    [x] 7.1.2 Task - Implement event continuity and join-key enforcement
       Enforce presence of `correlation_id`, `request_id`, and `session_id` in applicable telemetry events.
 
-      [ ] 7.1.2.1 Subtask - Implement event validation checks for required join keys.
-      [ ] 7.1.2.2 Subtask - Implement fallback handling for missing continuity metadata.
-      [ ] 7.1.2.3 Subtask - Emit telemetry validation failures as typed observability diagnostics.
+      [x] 7.1.2.1 Subtask - Implement event validation checks for required join keys.
+      [x] 7.1.2.2 Subtask - Implement fallback handling for missing continuity metadata.
+      [x] 7.1.2.3 Subtask - Emit telemetry validation failures as typed observability diagnostics.
 
   [ ] 7.2 Section - Typed Error Normalization Baseline
     Implement consistent typed error normalization across runtime stages.
