@@ -15,7 +15,7 @@ Back to index: [README](./README.md)
 - Replay determinism is validated through command/event stream and IUR hash parity.
 - Phase SCN focus: `SCN-001`, `SCN-003`, `SCN-004`, `SCN-008`.
 
-[ ] 6 Phase 6 - Session Runtime In-Memory State and Replay Control
+[x] 6 Phase 6 - Session Runtime In-Memory State and Replay Control
   Implement session runtime authority, in-memory snapshot management, and replay controls that preserve deterministic state and hash parity.
 
   [x] 6.1 Section - Session Runtime Authority and Snapshot Contracts
@@ -69,19 +69,19 @@ Back to index: [README](./README.md)
       [x] 6.3.2.2 Subtask - Implement parity mismatch typed errors and diagnostics.
       [x] 6.3.2.3 Subtask - Emit replay parity telemetry and mismatch counters.
 
-  [ ] 6.4 Section - Phase 6 Integration Tests
+  [x] 6.4 Section - Phase 6 Integration Tests
     Validate in-memory session authority, retention behavior, and replay determinism end-to-end.
 
-    [ ] 6.4.1 Task - Session transition and retention integration scenarios
+    [x] 6.4.1 Task - Session transition and retention integration scenarios
       Verify session lifecycle behavior and last-known-good retention semantics.
 
-      [ ] 6.4.1.1 Subtask - Verify session create/update/current snapshot APIs operate under runtime authority.
-      [ ] 6.4.1.2 Subtask - Verify failed compile/render outcomes retain last-known-good projection.
-      [ ] 6.4.1.3 Subtask - Verify session operations run without external persistence dependencies.
+      [x] 6.4.1.1 Subtask - Verify session create/update/current snapshot APIs operate under runtime authority.
+      [x] 6.4.1.2 Subtask - Verify failed compile/render outcomes retain last-known-good projection.
+      [x] 6.4.1.3 Subtask - Verify session operations run without external persistence dependencies.
 
-    [ ] 6.4.2 Task - Replay and parity integration scenarios
+    [x] 6.4.2 Task - Replay and parity integration scenarios
       Verify deterministic replay and hash parity outcomes from in-memory snapshots.
 
-      [ ] 6.4.2.1 Subtask - Verify replayed command/event streams produce deterministic state transitions.
-      [ ] 6.4.2.2 Subtask - Verify replay reconstructs expected active IUR hash parity.
-      [ ] 6.4.2.3 Subtask - Verify replay mismatches produce typed errors and telemetry diagnostics.
+      [x] 6.4.2.1 Subtask - Verify replayed command/event streams produce deterministic state transitions.
+      [x] 6.4.2.2 Subtask - Verify replay reconstructs expected active IUR hash parity.
+      [x] 6.4.2.3 Subtask - Verify replay mismatches produce typed errors and telemetry diagnostics.
