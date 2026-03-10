@@ -4,14 +4,25 @@ defmodule JidoCodeUi.TypedError do
   """
 
   @conformance_rules [
-    %{prefix: "session_authority_violation", category: "boundary", stage_prefix: "session_"},
+    %{
+      prefix: "session_authority_violation",
+      category: "boundary",
+      stage_prefixes: ["session_", "startup_"]
+    },
+    %{prefix: "startup_child_order_violation", category: "boundary", stage_prefix: "startup_"},
+    %{prefix: "missing_required_child", category: "boundary", stage_prefix: "startup_"},
+    %{prefix: "missing_control_plane_assignment", category: "boundary", stage_prefix: "startup_"},
     %{prefix: "ingress_", category: "ingress", stage_prefix: "ingress_"},
     %{prefix: "policy_", category: "policy", stage_prefix: "policy_"},
     %{prefix: "dsl_", category: "compile", stage_prefix: "dsl_"},
     %{prefix: "iur_", category: "render", stage_prefix: "iur_"},
     %{prefix: "session_", category: "session", stage_prefix: "session_"},
     %{prefix: "orchestrator_", category: "orchestration", stage_prefix: "orchestrator_"},
-    %{prefix: "startup_not_ready", category: "readiness", stage_prefix: "ingress_"},
+    %{
+      prefix: "startup_not_ready",
+      category: "readiness",
+      stage_prefixes: ["ingress_", "orchestrator_", "dsl_", "iur_", "session_"]
+    },
     %{prefix: "startup_", category: "startup", stage_prefix: "application_"},
     %{prefix: "dependency_", category: "startup", stage_prefix: "application_"}
   ]
@@ -42,7 +53,7 @@ defmodule JidoCodeUi.TypedError do
   @type conformance_result :: %{
           status: :pass | :fail | :unknown,
           expected_category: String.t() | nil,
-          expected_stage_prefix: String.t() | nil
+          expected_stage_prefix: String.t() | [String.t()] | nil
         }
 
   @spec new(keyword()) :: t()
@@ -172,8 +183,9 @@ defmodule JidoCodeUi.TypedError do
       nil ->
         %{status: :unknown, expected_category: nil, expected_stage_prefix: nil}
 
-      %{category: expected_category, stage_prefix: expected_stage_prefix} ->
-        stage_matches? = String.starts_with?(stage, expected_stage_prefix)
+      %{category: expected_category} = mapping ->
+        expected_stage_prefixes = expected_stage_prefixes(mapping)
+        stage_matches? = stage_matches?(stage, expected_stage_prefixes)
         category_matches? = category == expected_category
 
         status =
@@ -186,7 +198,7 @@ defmodule JidoCodeUi.TypedError do
         %{
           status: status,
           expected_category: expected_category,
-          expected_stage_prefix: expected_stage_prefix
+          expected_stage_prefix: expected_stage_prefix_value(expected_stage_prefixes)
         }
     end
   end
@@ -217,4 +229,30 @@ defmodule JidoCodeUi.TypedError do
       String.starts_with?(error_code, rule.prefix)
     end)
   end
+
+  defp expected_stage_prefixes(%{stage_prefixes: prefixes}) when is_list(prefixes) do
+    prefixes
+    |> Enum.filter(&is_binary/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp expected_stage_prefixes(%{stage_prefix: prefix}) when is_binary(prefix) do
+    [prefix]
+  end
+
+  defp expected_stage_prefixes(_mapping), do: []
+
+  defp stage_matches?(stage, [single_prefix]) do
+    String.starts_with?(stage, single_prefix)
+  end
+
+  defp stage_matches?(stage, prefixes) when is_list(prefixes) do
+    Enum.any?(prefixes, &String.starts_with?(stage, &1))
+  end
+
+  defp stage_matches?(_stage, _prefixes), do: false
+
+  defp expected_stage_prefix_value([single_prefix]), do: single_prefix
+  defp expected_stage_prefix_value(prefixes) when is_list(prefixes), do: prefixes
+  defp expected_stage_prefix_value(_prefixes), do: nil
 end
