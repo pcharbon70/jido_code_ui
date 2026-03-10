@@ -164,6 +164,26 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
            end)
   end
 
+  test "admit honors explicit atom continuity keys over conflicting string-key fallbacks" do
+    assert {:error,
+            %TypedError{
+              category: "ingress",
+              error_code: "ingress_continuity_missing",
+              stage: "ingress_continuity"
+            } = typed_error} =
+             Substrate.admit(%{
+               "correlation_id" => "cor-continuity-string-fallback",
+               command_type: "open_file",
+               session_id: "sess-continuity-atom-precedence",
+               correlation_id: nil,
+               request_id: "req-continuity-atom-precedence",
+               payload: %{path: "lib/foo.ex"},
+               auth_context: valid_auth_context()
+             })
+
+    assert typed_error.details.schema_path == "$.correlation_id"
+  end
+
   test "admit rejects malformed continuity IDs" do
     assert {:error,
             %TypedError{
@@ -178,6 +198,27 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
                payload: %{path: "lib/foo.ex"},
                auth_context: valid_auth_context()
              })
+  end
+
+  test "admit preserves explicit authenticated false over conflicting string-key fallback" do
+    assert {:ok, admitted} =
+             Substrate.admit(%{
+               command_type: "open_file",
+               session_id: "sess-authenticated-precedence",
+               correlation_id: "cor-authenticated-precedence",
+               request_id: "req-authenticated-precedence",
+               payload: %{path: "lib/foo.ex"},
+               auth_context: %{
+                 "authenticated" => true,
+                 subject_id: "usr-authenticated-precedence",
+                 roles: ["editor"],
+                 scopes: ["files:read"],
+                 authenticated: false
+               }
+             })
+
+    assert admitted.auth_context.authenticated == false
+    assert admitted.orchestrator_envelope.context.auth_context.authenticated == false
   end
 
   test "admit emits auth denied diagnostics for missing auth context" do

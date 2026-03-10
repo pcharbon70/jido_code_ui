@@ -431,8 +431,20 @@ defmodule JidoCodeUi.Runtime.Substrate do
 
   defp get_key(map, key) do
     case map do
-      value when is_map(value) -> Map.get(value, key) || Map.get(value, Atom.to_string(key))
-      _ -> nil
+      value when is_map(value) ->
+        cond do
+          Map.has_key?(value, key) ->
+            Map.get(value, key)
+
+          is_atom(key) and Map.has_key?(value, Atom.to_string(key)) ->
+            Map.get(value, Atom.to_string(key))
+
+          true ->
+            nil
+        end
+
+      _ ->
+        nil
     end
   end
 
