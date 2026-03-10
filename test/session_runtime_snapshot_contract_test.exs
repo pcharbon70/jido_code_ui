@@ -140,7 +140,7 @@ defmodule JidoCodeUi.SessionRuntimeSnapshotContractTest do
              })
 
     event_stream = [
-      %{sequence: 2, accepted: true, iur_hash: "hash-replay-final"},
+      %{sequence: 2, accepted: true, iur_hash: "hash-replay-base"},
       %{sequence: 1, accepted: true, iur_hash: "hash-replay-mid"},
       %{sequence: 3, accepted: false, iur_hash: "hash-replay-ignored"}
     ]
@@ -149,16 +149,68 @@ defmodule JidoCodeUi.SessionRuntimeSnapshotContractTest do
 
     assert replayed.revision == created.revision + 1
     assert replayed.replay.status == "completed"
+    assert replayed.replay.parity_status == "match"
     assert replayed.replay.event_count == 2
     assert replayed.replay.expected_iur_hash == "hash-replay-base"
-    assert replayed.replay.actual_iur_hash == "hash-replay-final"
+    assert replayed.replay.actual_iur_hash == "hash-replay-base"
+    assert replayed.active_iur_hash == "hash-replay-base"
     assert replayed.continuity.correlation_id == "cor-runtime-replay-create"
     assert replayed.continuity.request_id == "req-runtime-replay-create"
 
     assert Enum.any?(Telemetry.recent_events(80), fn event ->
              event.event_name == "ui.session.replay.completed.v1" and
                event.session_id == "sess-runtime-replay" and
-               event.event_count == 2
+               event.event_count == 2 and
+               event.parity_status == "match"
+           end)
+  end
+
+  test "replay parity mismatches return typed errors and emit mismatch diagnostics" do
+    assert {:ok, created} =
+             RuntimeAgent.create_session(%{
+               session_id: "sess-runtime-replay-mismatch",
+               route_key: "route-runtime-replay-mismatch",
+               compile_result: %{iur_hash: "hash-replay-expected"},
+               correlation_id: "cor-runtime-replay-mismatch-create",
+               request_id: "req-runtime-replay-mismatch-create"
+             })
+
+    event_stream = [
+      %{sequence: 1, accepted: true, iur_hash: "hash-replay-actual"}
+    ]
+
+    assert {:error,
+            %TypedError{
+              category: "session",
+              stage: "session_runtime_replay_parity",
+              error_code: "session_replay_parity_mismatch"
+            }} =
+             RuntimeAgent.replay_session("sess-runtime-replay-mismatch", event_stream)
+
+    assert {:ok, current} = RuntimeAgent.current_snapshot("sess-runtime-replay-mismatch")
+    assert current.revision == created.revision
+    assert current.active_iur_hash == "hash-replay-expected"
+
+    events = Telemetry.recent_events(120)
+
+    assert Enum.any?(events, fn event ->
+             event.event_name == "ui.session.replay.parity.v1" and
+               event.session_id == "sess-runtime-replay-mismatch" and
+               event.parity_status == "mismatch"
+           end)
+
+    assert Enum.any?(events, fn event ->
+             event.event_name == "ui.session.replay.metric.v1" and
+               event.metric == "replay_parity_mismatch_total" and
+               event.session_id == "sess-runtime-replay-mismatch"
+           end)
+
+    assert Enum.any?(events, fn event ->
+             event.event_name == "ui.session.failure.v1" and
+               event.operation == "replay_session" and
+               event.error_code == "session_replay_parity_mismatch" and
+               event.replay_status == "mismatch" and
+               event.session_id == "sess-runtime-replay-mismatch"
            end)
   end
 

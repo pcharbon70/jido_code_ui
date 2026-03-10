@@ -52,22 +52,22 @@ Back to index: [README](./README.md)
       [x] 6.2.2.2 Subtask - Implement session-stage typed error mapping and normalization.
       [x] 6.2.2.3 Subtask - Emit session failure events with replay and snapshot diagnostics.
 
-  [ ] 6.3 Section - Replay Determinism and Hash Parity Controls
+  [x] 6.3 Section - Replay Determinism and Hash Parity Controls
     Implement deterministic replay behavior for command/event streams against in-memory snapshots.
 
-    [ ] 6.3.1 Task - Implement replay stream evaluation semantics
+    [x] 6.3.1 Task - Implement replay stream evaluation semantics
       Replay admitted command/event streams to reconstruct deterministic session state and IUR outputs.
 
-      [ ] 6.3.1.1 Subtask - Implement replay admission filters for only valid, policy-accepted events.
-      [ ] 6.3.1.2 Subtask - Implement deterministic replay ordering semantics.
-      [ ] 6.3.1.3 Subtask - Implement replay completion outcomes with typed status metadata.
+      [x] 6.3.1.1 Subtask - Implement replay admission filters for only valid, policy-accepted events.
+      [x] 6.3.1.2 Subtask - Implement deterministic replay ordering semantics.
+      [x] 6.3.1.3 Subtask - Implement replay completion outcomes with typed status metadata.
 
-    [ ] 6.3.2 Task - Implement replay hash parity verification
+    [x] 6.3.2 Task - Implement replay hash parity verification
       Verify replayed output reproduces expected active IUR hash values.
 
-      [ ] 6.3.2.1 Subtask - Implement replay-time IUR hash computation and comparison contract.
-      [ ] 6.3.2.2 Subtask - Implement parity mismatch typed errors and diagnostics.
-      [ ] 6.3.2.3 Subtask - Emit replay parity telemetry and mismatch counters.
+      [x] 6.3.2.1 Subtask - Implement replay-time IUR hash computation and comparison contract.
+      [x] 6.3.2.2 Subtask - Implement parity mismatch typed errors and diagnostics.
+      [x] 6.3.2.3 Subtask - Emit replay parity telemetry and mismatch counters.
 
   [ ] 6.4 Section - Phase 6 Integration Tests
     Validate in-memory session authority, retention behavior, and replay determinism end-to-end.

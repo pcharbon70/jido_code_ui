@@ -405,32 +405,85 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
         event -> normalize_string(get_value(event, :iur_hash)) || snapshot.active_iur_hash
       end
 
-    replay_contract = %{
-      status: "completed",
-      event_count: length(admitted_events),
-      expected_iur_hash: snapshot.active_iur_hash,
+    expected_iur_hash = snapshot.active_iur_hash
+    parity_status = replay_parity_status(expected_iur_hash, actual_iur_hash)
+
+    Telemetry.emit("ui.session.replay.parity.v1", %{
+      session_id: snapshot.session_id,
+      parity_status: parity_status,
+      expected_iur_hash: expected_iur_hash,
       actual_iur_hash: actual_iur_hash,
-      last_replay_at: DateTime.utc_now()
-    }
-
-    replayed_snapshot = %{
-      snapshot
-      | replay: replay_contract,
-        continuity: continuity,
-        revision: snapshot.revision + 1,
-        updated_at: DateTime.utc_now()
-    }
-
-    Telemetry.emit("ui.session.replay.completed.v1", %{
-      session_id: replayed_snapshot.session_id,
-      event_count: replay_contract.event_count,
-      expected_iur_hash: replay_contract.expected_iur_hash,
-      actual_iur_hash: replay_contract.actual_iur_hash,
+      event_count: length(admitted_events),
       correlation_id: continuity.correlation_id,
       request_id: continuity.request_id
     })
 
-    {:ok, replayed_snapshot}
+    Telemetry.emit("ui.session.replay.metric.v1", %{
+      metric: "replay_parity_total",
+      value: 1,
+      parity_status: parity_status,
+      session_id: snapshot.session_id,
+      correlation_id: continuity.correlation_id,
+      request_id: continuity.request_id
+    })
+
+    if parity_status == "mismatch" do
+      Telemetry.emit("ui.session.replay.metric.v1", %{
+        metric: "replay_parity_mismatch_total",
+        value: 1,
+        parity_status: parity_status,
+        session_id: snapshot.session_id,
+        correlation_id: continuity.correlation_id,
+        request_id: continuity.request_id
+      })
+
+      {:error,
+       session_error(
+         "session_replay_parity_mismatch",
+         "Replay parity mismatch detected between expected and actual IUR hash",
+         continuity,
+         "session_runtime_replay_parity",
+         %{
+           session_id: snapshot.session_id,
+           expected_iur_hash: expected_iur_hash,
+           actual_iur_hash: actual_iur_hash,
+           replay_status: "mismatch",
+           replay_event_count: length(admitted_events),
+           snapshot_revision: snapshot.revision,
+           active_iur_hash: snapshot.active_iur_hash
+         }
+       )}
+    else
+      replay_contract = %{
+        status: "completed",
+        parity_status: parity_status,
+        event_count: length(admitted_events),
+        expected_iur_hash: expected_iur_hash,
+        actual_iur_hash: actual_iur_hash,
+        last_replay_at: DateTime.utc_now()
+      }
+
+      replayed_snapshot = %{
+        snapshot
+        | replay: replay_contract,
+          continuity: continuity,
+          active_iur_hash: actual_iur_hash,
+          revision: snapshot.revision + 1,
+          updated_at: DateTime.utc_now()
+      }
+
+      Telemetry.emit("ui.session.replay.completed.v1", %{
+        session_id: replayed_snapshot.session_id,
+        event_count: replay_contract.event_count,
+        expected_iur_hash: replay_contract.expected_iur_hash,
+        actual_iur_hash: replay_contract.actual_iur_hash,
+        parity_status: parity_status,
+        correlation_id: continuity.correlation_id,
+        request_id: continuity.request_id
+      })
+
+      {:ok, replayed_snapshot}
+    end
   end
 
   defp resolve_session_id(attrs) do
@@ -601,6 +654,15 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
     case get_value(event, :sequence) do
       value when is_integer(value) -> value
       _ -> 0
+    end
+  end
+
+  defp replay_parity_status(expected_iur_hash, actual_iur_hash) do
+    cond do
+      expected_iur_hash == nil and actual_iur_hash == nil -> "baseline"
+      expected_iur_hash == nil and is_binary(actual_iur_hash) -> "baseline"
+      expected_iur_hash == actual_iur_hash -> "match"
+      true -> "mismatch"
     end
   end
 
