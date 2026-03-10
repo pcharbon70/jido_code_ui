@@ -82,6 +82,7 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
     assert admitted.widget_ui_event.widget_id == "widget-001"
     assert admitted.widget_ui_event.widget_kind == "unknown_widget"
     assert admitted.widget_ui_event.data == %{action: "run"}
+    assert admitted.widget_ui_event.session_id == nil
     assert is_binary(admitted.widget_ui_event.timestamp)
     assert admitted.dispatch_context.widget_id == "widget-001"
     assert admitted.orchestrator_envelope.context.envelope_kind == :widget_ui_event
