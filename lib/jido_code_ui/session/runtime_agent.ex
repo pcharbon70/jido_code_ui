@@ -119,12 +119,7 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
 
     case Map.fetch(state.sessions, session_id) do
       {:ok, existing_snapshot} ->
-        with {:ok, snapshot} <- build_upsert_snapshot(existing_snapshot, attrs, continuity) do
-          next_state = put_in(state, [:sessions, session_id], snapshot)
-          {:reply, {:ok, snapshot}, next_state}
-        else
-          {:error, %TypedError{} = typed_error} -> {:reply, {:error, typed_error}, state}
-        end
+        {:reply, {:ok, existing_snapshot}, state}
 
       :error ->
         with {:ok, snapshot} <- build_initial_snapshot(session_id, attrs, continuity) do
@@ -241,13 +236,17 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
     {:ok, snapshot}
   end
 
-  defp build_upsert_snapshot(existing_snapshot, attrs, continuity) do
-    with :ok <- ensure_expected_revision(existing_snapshot, attrs, continuity) do
-      build_updated_snapshot(existing_snapshot, attrs, continuity)
+  defp build_updated_snapshot(existing_snapshot, attrs, continuity) do
+    retention = normalize_optional_map(attrs, :retention)
+
+    if retention != %{} do
+      build_retained_snapshot(existing_snapshot, attrs, retention, continuity)
+    else
+      do_build_updated_snapshot(existing_snapshot, attrs, continuity)
     end
   end
 
-  defp build_updated_snapshot(existing_snapshot, attrs, continuity) do
+  defp do_build_updated_snapshot(existing_snapshot, attrs, continuity) do
     compile_result = normalize_optional_map(attrs, :compile_result)
     render_result = normalize_optional_map(attrs, :render_result)
 
@@ -278,6 +277,101 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
     }
 
     {:ok, next_snapshot}
+  end
+
+  defp build_retained_snapshot(existing_snapshot, attrs, retention, continuity) do
+    with {:ok, rollback_marker} <- rollback_marker(existing_snapshot, retention, continuity) do
+      next_snapshot = %{
+        existing_snapshot
+        | route_key: resolve_route_key(attrs, existing_snapshot.route_key),
+          continuity: continuity,
+          rollback: rollback_marker,
+          metadata: Map.merge(existing_snapshot.metadata, metadata_contract(attrs)),
+          revision: existing_snapshot.revision + 1,
+          updated_at: DateTime.utc_now()
+      }
+
+      Telemetry.emit("ui.session.retention.applied.v1", %{
+        session_id: next_snapshot.session_id,
+        rollback_status: rollback_marker.status,
+        failed_stage: rollback_marker.failed_stage,
+        failed_error_code: rollback_marker.failed_error_code,
+        active_iur_hash: next_snapshot.active_iur_hash,
+        revision: next_snapshot.revision,
+        correlation_id: continuity.correlation_id,
+        request_id: continuity.request_id
+      })
+
+      {:ok, next_snapshot}
+    end
+  end
+
+  defp rollback_marker(snapshot, retention, continuity) do
+    failed_stage = normalize_string(get_value(retention, :failed_stage))
+
+    if failed_stage in ["compile", "render", "replay"] do
+      has_last_known_good? =
+        snapshot.render.rendered == true and is_binary(snapshot.active_iur_hash)
+
+      require_last_known_good? = get_value(retention, :require_last_known_good) == true
+
+      if require_last_known_good? and not has_last_known_good? do
+        {:error,
+         session_error(
+           "session_retention_violation",
+           "No last-known-good projection exists for required retention",
+           continuity,
+           "session_runtime_retention",
+           %{
+             session_id: snapshot.session_id,
+             failed_stage: failed_stage,
+             snapshot_revision: snapshot.revision,
+             active_iur_hash: snapshot.active_iur_hash,
+             replay_status: get_in(snapshot, [:replay, :status]),
+             replay_event_count: get_in(snapshot, [:replay, :event_count]),
+             rollback_status: "violation_no_known_good"
+           }
+         )}
+      else
+        status =
+          if has_last_known_good? do
+            "retained_last_known_good"
+          else
+            "retention_skipped_no_known_good"
+          end
+
+        {:ok,
+         %{
+           status: status,
+           failed_stage: failed_stage,
+           failed_error_code: normalize_string(get_value(retention, :error_code)),
+           failed_error_category: normalize_string(get_value(retention, :error_category)),
+           failed_error_stage: normalize_string(get_value(retention, :error_stage)),
+           retained_revision: snapshot.revision,
+           retained_iur_hash: snapshot.active_iur_hash,
+           retained_rendered: snapshot.render.rendered == true,
+           replay_status: get_in(snapshot, [:replay, :status]),
+           replay_event_count: get_in(snapshot, [:replay, :event_count]),
+           diagnostics: normalize_optional_map(retention, :details),
+           applied_at: DateTime.utc_now()
+         }}
+      end
+    else
+      {:error,
+       session_error(
+         "session_retention_invalid_payload",
+         "Retention failed_stage must be compile, render, or replay",
+         continuity,
+         "session_runtime_retention",
+         %{
+           session_id: snapshot.session_id,
+           schema_path: "$.retention.failed_stage",
+           expected: "compile|render|replay",
+           received: inspect(get_value(retention, :failed_stage)),
+           rollback_status: "invalid_payload"
+         }
+       )}
+    end
   end
 
   defp normalize_replay_events(event_stream, continuity) do
@@ -422,7 +516,14 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
            "Session snapshot revision does not match expected revision",
            continuity,
            "session_runtime_transition",
-           %{expected_revision: invalid, actual_revision: snapshot.revision}
+           %{
+             session_id: snapshot.session_id,
+             expected_revision: invalid,
+             actual_revision: snapshot.revision,
+             active_iur_hash: snapshot.active_iur_hash,
+             replay_status: get_in(snapshot, [:replay, :status]),
+             replay_event_count: get_in(snapshot, [:replay, :event_count])
+           }
          )}
     end
   end
@@ -451,16 +552,39 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
   end
 
   defp emit_session_failure(operation, %TypedError{} = typed_error) do
-    Telemetry.emit("ui.session.failure.v1", %{
-      operation: operation,
-      error_code: typed_error.error_code,
-      error_category: typed_error.category,
-      error_stage: typed_error.stage,
-      details: typed_error.details,
-      correlation_id: typed_error.correlation_id,
-      request_id: typed_error.request_id
-    })
+    diagnostics = session_failure_diagnostics(typed_error.details)
+
+    Telemetry.emit(
+      "ui.session.failure.v1",
+      Map.merge(
+        %{
+          operation: operation,
+          error_code: typed_error.error_code,
+          error_category: typed_error.category,
+          error_stage: typed_error.stage,
+          details: typed_error.details,
+          correlation_id: typed_error.correlation_id,
+          request_id: typed_error.request_id
+        },
+        diagnostics
+      )
+    )
   end
+
+  defp session_failure_diagnostics(details) when is_map(details) do
+    %{
+      session_id: normalize_string(get_value(details, :session_id)),
+      snapshot_revision: normalize_integer(get_value(details, :snapshot_revision)),
+      replay_status: normalize_string(get_value(details, :replay_status)),
+      replay_event_count: normalize_integer(get_value(details, :replay_event_count)),
+      active_iur_hash: normalize_string(get_value(details, :active_iur_hash)),
+      rollback_status: normalize_string(get_value(details, :rollback_status))
+    }
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+    |> Map.new()
+  end
+
+  defp session_failure_diagnostics(_details), do: %{}
 
   defp admit_replay_event?(event) when is_map(event) do
     accepted_flag = get_value(event, :accepted)
@@ -526,6 +650,9 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
   end
 
   defp normalize_string(_value), do: nil
+
+  defp normalize_integer(value) when is_integer(value), do: value
+  defp normalize_integer(_value), do: nil
 
   defp get_value(map, key) when is_map(map) do
     if Map.has_key?(map, key) do

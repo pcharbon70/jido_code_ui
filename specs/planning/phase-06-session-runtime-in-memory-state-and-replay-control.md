@@ -35,22 +35,22 @@ Back to index: [README](./README.md)
       [x] 6.1.2.2 Subtask - Implement in-memory storage and retrieval with no external persistence dependencies.
       [x] 6.1.2.3 Subtask - Implement typed errors for missing, invalid, or stale snapshot operations.
 
-  [ ] 6.2 Section - Last-Known-Good and Failure Retention Behavior
+  [x] 6.2 Section - Last-Known-Good and Failure Retention Behavior
     Implement snapshot retention controls for compile/render failure paths.
 
-    [ ] 6.2.1 Task - Implement last-known-good snapshot retention
+    [x] 6.2.1 Task - Implement last-known-good snapshot retention
       Preserve prior good session projection when compile/render stages fail.
 
-      [ ] 6.2.1.1 Subtask - Implement retention policy for failed compile outcomes.
-      [ ] 6.2.1.2 Subtask - Implement retention policy for failed render outcomes.
-      [ ] 6.2.1.3 Subtask - Implement explicit rollback marker metadata in retained snapshots.
+      [x] 6.2.1.1 Subtask - Implement retention policy for failed compile outcomes.
+      [x] 6.2.1.2 Subtask - Implement retention policy for failed render outcomes.
+      [x] 6.2.1.3 Subtask - Implement explicit rollback marker metadata in retained snapshots.
 
-    [ ] 6.2.2 Task - Implement session failure typed outcomes
+    [x] 6.2.2 Task - Implement session failure typed outcomes
       Normalize session-stage failures into typed errors with continuity metadata.
 
-      [ ] 6.2.2.1 Subtask - Define session failure error categories for transition, replay, and retention violations.
-      [ ] 6.2.2.2 Subtask - Implement session-stage typed error mapping and normalization.
-      [ ] 6.2.2.3 Subtask - Emit session failure events with replay and snapshot diagnostics.
+      [x] 6.2.2.1 Subtask - Define session failure error categories for transition, replay, and retention violations.
+      [x] 6.2.2.2 Subtask - Implement session-stage typed error mapping and normalization.
+      [x] 6.2.2.3 Subtask - Emit session failure events with replay and snapshot diagnostics.
 
   [ ] 6.3 Section - Replay Determinism and Hash Parity Controls
     Implement deterministic replay behavior for command/event streams against in-memory snapshots.

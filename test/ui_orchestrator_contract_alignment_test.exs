@@ -5,6 +5,7 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.Runtime.Substrate
   alias JidoCodeUi.Services.UiOrchestrator
+  alias JidoCodeUi.Session.RuntimeAgent
   alias JidoCodeUi.TypedError
 
   setup do
@@ -135,6 +136,102 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
             }} = UiOrchestrator.execute(admitted, %{})
 
     assert_event("ui.iur.render.failed.v1", "cor-contract-render-fail")
+  end
+
+  test "compile failure paths retain last-known-good session projection metadata" do
+    baseline =
+      admit_command(%{
+        session_id: "sess-contract-retain-compile",
+        correlation_id: "cor-contract-retain-compile-baseline",
+        request_id: "req-contract-retain-compile-baseline",
+        auth_context: editor_auth("v3"),
+        payload: %{path: "lib/retain_compile.ex", contents: "baseline"}
+      })
+
+    assert {:ok, _baseline_result} = UiOrchestrator.execute(baseline, %{})
+    assert {:ok, before_failure} = RuntimeAgent.current_snapshot("sess-contract-retain-compile")
+    assert before_failure.render.rendered == true
+
+    failed_compile =
+      admit_command(%{
+        session_id: "sess-contract-retain-compile",
+        correlation_id: "cor-contract-retain-compile-fail",
+        request_id: "req-contract-retain-compile-fail",
+        auth_context: editor_auth("v3"),
+        payload: %{
+          path: "lib/retain_compile.ex",
+          contents: "break",
+          force_compile_error: true
+        }
+      })
+
+    assert {:error,
+            %TypedError{
+              category: "orchestration",
+              stage: "orchestrator_compile",
+              error_code: "orchestrator_compile_failed",
+              details: details
+            }} = UiOrchestrator.execute(failed_compile, %{})
+
+    assert Map.get(details, :retention_status) == "retained_last_known_good"
+    assert Map.get(details, :retention_session_id) == "sess-contract-retain-compile"
+    assert Map.get(details, :retention_error_code) == nil
+
+    assert {:ok, after_failure} = RuntimeAgent.current_snapshot("sess-contract-retain-compile")
+
+    assert after_failure.active_iur_hash == before_failure.active_iur_hash
+    assert after_failure.render == before_failure.render
+    assert after_failure.rollback.status == "retained_last_known_good"
+    assert after_failure.rollback.failed_stage == "compile"
+    assert after_failure.rollback.failed_error_code == "dsl_compile_failed"
+  end
+
+  test "render failure paths retain last-known-good session projection metadata" do
+    baseline =
+      admit_command(%{
+        session_id: "sess-contract-retain-render",
+        correlation_id: "cor-contract-retain-render-baseline",
+        request_id: "req-contract-retain-render-baseline",
+        auth_context: editor_auth("v3"),
+        payload: %{path: "lib/retain_render.ex", contents: "baseline"}
+      })
+
+    assert {:ok, _baseline_result} = UiOrchestrator.execute(baseline, %{})
+    assert {:ok, before_failure} = RuntimeAgent.current_snapshot("sess-contract-retain-render")
+    assert before_failure.render.rendered == true
+
+    failed_render =
+      admit_command(%{
+        session_id: "sess-contract-retain-render",
+        correlation_id: "cor-contract-retain-render-fail",
+        request_id: "req-contract-retain-render-fail",
+        auth_context: editor_auth("v3"),
+        payload: %{
+          path: "lib/retain_render.ex",
+          contents: "changed",
+          force_render_error: true
+        }
+      })
+
+    assert {:error,
+            %TypedError{
+              category: "orchestration",
+              stage: "orchestrator_render",
+              error_code: "orchestrator_render_failed",
+              details: details
+            }} = UiOrchestrator.execute(failed_render, %{})
+
+    assert Map.get(details, :retention_status) == "retained_last_known_good"
+    assert Map.get(details, :retention_session_id) == "sess-contract-retain-render"
+    assert Map.get(details, :retention_error_code) == nil
+
+    assert {:ok, after_failure} = RuntimeAgent.current_snapshot("sess-contract-retain-render")
+
+    assert after_failure.active_iur_hash == before_failure.active_iur_hash
+    assert after_failure.render == before_failure.render
+    assert after_failure.rollback.status == "retained_last_known_good"
+    assert after_failure.rollback.failed_stage == "render"
+    assert after_failure.rollback.failed_error_code == "iur_adapter_failed"
   end
 
   defp admit_command(overrides) do

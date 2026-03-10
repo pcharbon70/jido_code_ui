@@ -162,6 +162,97 @@ defmodule JidoCodeUi.SessionRuntimeSnapshotContractTest do
            end)
   end
 
+  test "update_session retains last-known-good projection and records rollback markers" do
+    assert {:ok, created} =
+             RuntimeAgent.create_session(%{
+               session_id: "sess-runtime-retain",
+               route_key: "route-runtime-retain",
+               compile_result: %{iur_hash: "hash-retain-good"},
+               correlation_id: "cor-runtime-retain-create",
+               request_id: "req-runtime-retain-create"
+             })
+
+    assert {:ok, rendered} =
+             RuntimeAgent.update_session("sess-runtime-retain", %{
+               expected_revision: created.revision,
+               render_result: %{
+                 rendered: true,
+                 render_metadata: %{payload_class: "small"}
+               },
+               correlation_id: "cor-runtime-retain-render",
+               request_id: "req-runtime-retain-render"
+             })
+
+    assert {:ok, retained} =
+             RuntimeAgent.update_session("sess-runtime-retain", %{
+               expected_revision: rendered.revision,
+               retention: %{
+                 failed_stage: "compile",
+                 error_code: "dsl_compile_failed",
+                 error_category: "compile",
+                 error_stage: "dsl_compile",
+                 details: %{reason: "simulated compile failure"}
+               },
+               correlation_id: "cor-runtime-retain-failure",
+               request_id: "req-runtime-retain-failure"
+             })
+
+    assert retained.revision == rendered.revision + 1
+    assert retained.active_iur_hash == "hash-retain-good"
+    assert retained.compile == rendered.compile
+    assert retained.render == rendered.render
+    assert retained.rollback.status == "retained_last_known_good"
+    assert retained.rollback.failed_stage == "compile"
+    assert retained.rollback.failed_error_code == "dsl_compile_failed"
+    assert retained.rollback.retained_iur_hash == "hash-retain-good"
+    assert retained.rollback.retained_rendered == true
+
+    assert Enum.any?(Telemetry.recent_events(100), fn event ->
+             event.event_name == "ui.session.retention.applied.v1" and
+               event.session_id == "sess-runtime-retain" and
+               event.rollback_status == "retained_last_known_good"
+           end)
+  end
+
+  test "retention violations emit typed outcomes with replay and snapshot diagnostics" do
+    assert {:ok, created} =
+             RuntimeAgent.create_session(%{
+               session_id: "sess-runtime-retain-violation",
+               route_key: "route-runtime-retain-violation",
+               compile_result: %{iur_hash: "hash-retain-violation"},
+               correlation_id: "cor-runtime-retain-violation-create",
+               request_id: "req-runtime-retain-violation-create"
+             })
+
+    assert {:error,
+            %TypedError{
+              category: "session",
+              stage: "session_runtime_retention",
+              error_code: "session_retention_violation"
+            }} =
+             RuntimeAgent.update_session("sess-runtime-retain-violation", %{
+               expected_revision: created.revision,
+               retention: %{
+                 failed_stage: "render",
+                 error_code: "iur_adapter_failed",
+                 error_category: "render",
+                 error_stage: "iur_render_adapter",
+                 require_last_known_good: true
+               },
+               correlation_id: "cor-runtime-retain-violation-failure",
+               request_id: "req-runtime-retain-violation-failure"
+             })
+
+    assert Enum.any?(Telemetry.recent_events(100), fn event ->
+             event.event_name == "ui.session.failure.v1" and
+               event.operation == "update_session" and
+               event.error_code == "session_retention_violation" and
+               event.rollback_status == "violation_no_known_good" and
+               event.replay_status == "not_started" and
+               event.session_id == "sess-runtime-retain-violation"
+           end)
+  end
+
   defp assert_eventually(fun, attempts \\ 30)
 
   defp assert_eventually(fun, 0) do
