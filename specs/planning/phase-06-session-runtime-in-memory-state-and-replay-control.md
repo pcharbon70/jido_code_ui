@@ -18,22 +18,22 @@ Back to index: [README](./README.md)
 [ ] 6 Phase 6 - Session Runtime In-Memory State and Replay Control
   Implement session runtime authority, in-memory snapshot management, and replay controls that preserve deterministic state and hash parity.
 
-  [ ] 6.1 Section - Session Runtime Authority and Snapshot Contracts
+  [x] 6.1 Section - Session Runtime Authority and Snapshot Contracts
     Implement canonical session APIs and in-memory snapshot authority semantics.
 
-    [ ] 6.1.1 Task - Implement session lifecycle APIs
+    [x] 6.1.1 Task - Implement session lifecycle APIs
       Implement `create_session/1`, `update_session/2`, `replay_session/2`, and `current_snapshot/1` under runtime authority.
 
-      [ ] 6.1.1.1 Subtask - Implement session creation semantics with deterministic initial snapshot state.
-      [ ] 6.1.1.2 Subtask - Implement session update semantics for accepted compile/render pipeline outcomes.
-      [ ] 6.1.1.3 Subtask - Implement current snapshot query semantics with continuity metadata.
+      [x] 6.1.1.1 Subtask - Implement session creation semantics with deterministic initial snapshot state.
+      [x] 6.1.1.2 Subtask - Implement session update semantics for accepted compile/render pipeline outcomes.
+      [x] 6.1.1.3 Subtask - Implement current snapshot query semantics with continuity metadata.
 
-    [ ] 6.1.2 Task - Implement in-memory `UiSessionSnapshot` contract
+    [x] 6.1.2 Task - Implement in-memory `UiSessionSnapshot` contract
       Define and enforce in-memory snapshot structure, ownership, and lifecycle rules.
 
-      [ ] 6.1.2.1 Subtask - Define `UiSessionSnapshot` fields for active IUR hash, schema versions, and session metadata.
-      [ ] 6.1.2.2 Subtask - Implement in-memory storage and retrieval with no external persistence dependencies.
-      [ ] 6.1.2.3 Subtask - Implement typed errors for missing, invalid, or stale snapshot operations.
+      [x] 6.1.2.1 Subtask - Define `UiSessionSnapshot` fields for active IUR hash, schema versions, and session metadata.
+      [x] 6.1.2.2 Subtask - Implement in-memory storage and retrieval with no external persistence dependencies.
+      [x] 6.1.2.3 Subtask - Implement typed errors for missing, invalid, or stale snapshot operations.
 
   [ ] 6.2 Section - Last-Known-Good and Failure Retention Behavior
     Implement snapshot retention controls for compile/render failure paths.

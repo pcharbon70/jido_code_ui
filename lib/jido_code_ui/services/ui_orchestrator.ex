@@ -163,7 +163,9 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
              session_id: session_id,
              route_key: state.route_key,
              compile_result: state.compile_result,
-             policy_version: state.policy_decision.policy_version
+             policy_version: state.policy_decision.policy_version,
+             correlation_id: input.continuity.correlation_id,
+             request_id: input.continuity.request_id
            }) do
         {:ok, snapshot} ->
           Telemetry.emit("ui.orchestrator.stage.session.v1", %{
@@ -211,14 +213,38 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
              request_id: input.continuity.request_id
            ) do
         {:ok, render_result} ->
-          Telemetry.emit("ui.iur.render.completed.v1", %{
-            route_key: state.route_key,
-            policy_version: policy_version,
-            correlation_id: input.continuity.correlation_id,
-            request_id: input.continuity.request_id
-          })
+          case RuntimeAgent.update_session(state.session_snapshot.session_id, %{
+                 expected_revision: state.session_snapshot.revision,
+                 route_key: state.route_key,
+                 policy_version: policy_version,
+                 compile_result: state.compile_result,
+                 render_result: render_result,
+                 correlation_id: input.continuity.correlation_id,
+                 request_id: input.continuity.request_id
+               }) do
+            {:ok, updated_snapshot} ->
+              Telemetry.emit("ui.iur.render.completed.v1", %{
+                route_key: state.route_key,
+                policy_version: policy_version,
+                correlation_id: input.continuity.correlation_id,
+                request_id: input.continuity.request_id
+              })
 
-          {:ok, Map.put(state, :render_result, render_result)}
+              {:ok,
+               state
+               |> Map.put(:session_snapshot, updated_snapshot)
+               |> Map.put(:render_result, render_result)}
+
+            {:error, %TypedError{} = typed_error} ->
+              {:error,
+               orchestration_error(
+                 state,
+                 "orchestrator_session_failed",
+                 "Session stage failed",
+                 "orchestrator_session",
+                 %{cause: typed_error.error_code}
+               )}
+          end
 
         {:error, %TypedError{} = typed_error} ->
           Telemetry.emit("ui.iur.render.failed.v1", %{
