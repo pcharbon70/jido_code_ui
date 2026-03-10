@@ -326,7 +326,16 @@ defmodule JidoCodeUi.Security.Policy do
   defp get_map(_map, _key), do: %{}
 
   defp get_value(map, key) when is_map(map) do
-    Map.get(map, key) || Map.get(map, Atom.to_string(key))
+    cond do
+      Map.has_key?(map, key) ->
+        Map.get(map, key)
+
+      is_atom(key) and Map.has_key?(map, Atom.to_string(key)) ->
+        Map.get(map, Atom.to_string(key))
+
+      true ->
+        nil
+    end
   end
 
   defp get_value(_map, _key), do: nil

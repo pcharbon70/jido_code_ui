@@ -108,6 +108,15 @@ defmodule JidoCodeUi.Contracts.UiSessionSnapshot do
   end
 
   defp get_value(map, key) when is_map(map) do
-    Map.get(map, key) || Map.get(map, Atom.to_string(key))
+    cond do
+      Map.has_key?(map, key) ->
+        Map.get(map, key)
+
+      is_atom(key) and Map.has_key?(map, Atom.to_string(key)) ->
+        Map.get(map, Atom.to_string(key))
+
+      true ->
+        nil
+    end
   end
 end

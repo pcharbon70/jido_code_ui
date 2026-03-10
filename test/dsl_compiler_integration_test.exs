@@ -163,6 +163,21 @@ defmodule JidoCodeUi.DslCompilerIntegrationTest do
            end)
   end
 
+  test "compile honors explicit force_error false when conflicting string fallback exists" do
+    assert {:ok, compile_result} =
+             DslCompiler.compile(
+               %{
+                 "force_error" => true,
+                 dsl_document: success_document(),
+                 force_error: false
+               },
+               correlation_id: "cor-int-compile-force-error-precedence",
+               request_id: "req-int-compile-force-error-precedence"
+             )
+
+    assert compile_result.compile_authority == "server"
+  end
+
   defp success_document do
     %{
       dsl_version: "v1",

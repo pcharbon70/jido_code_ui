@@ -102,6 +102,59 @@ defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
            end)
   end
 
+  test "authorize honors explicit authenticated false over conflicting string-key fallback" do
+    context = %{
+      correlation_id: "cor-pol-auth-false-precedence",
+      request_id: "req-pol-auth-false-precedence",
+      auth_context: %{
+        "authenticated" => true,
+        subject_id: "usr-editor",
+        roles: ["editor"],
+        authenticated: false
+      },
+      policy_context: %{policy_version: "v1"}
+    }
+
+    command =
+      UiCommand.new(%{
+        command_type: "open_file",
+        payload: %{path: "lib/app.ex"}
+      })
+
+    assert {:error, %TypedError{error_code: "policy_auth_required"}} =
+             Policy.authorize(context, command)
+  end
+
+  test "authorize honors explicit custom-node flag false over conflicting string-key fallback" do
+    context = %{
+      correlation_id: "cor-pol-custom-flag-precedence",
+      request_id: "req-pol-custom-flag-precedence",
+      auth_context: %{
+        subject_id: "svc-orchestrator",
+        actor_type: "service",
+        roles: ["editor"],
+        authenticated: true
+      },
+      policy_context: %{
+        policy_version: "v1",
+        feature_flags: %{
+          "custom_dsl_nodes" => true,
+          custom_dsl_nodes: false,
+          custom_node_allowlist: ["markdown.preview"]
+        }
+      }
+    }
+
+    command =
+      UiCommand.new(%{
+        command_type: "save_file",
+        payload: %{custom_nodes: ["markdown.preview"]}
+      })
+
+    assert {:error, %TypedError{error_code: "policy_custom_node_denied"}} =
+             Policy.authorize(context, command)
+  end
+
   test "authorize allows custom nodes when flag and allowlist permit execution" do
     context = %{
       correlation_id: "cor-pol-custom-allow",

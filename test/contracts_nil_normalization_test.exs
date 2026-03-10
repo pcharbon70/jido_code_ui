@@ -3,6 +3,7 @@ defmodule JidoCodeUi.ContractsNilNormalizationTest do
 
   alias JidoCodeUi.Contracts.CompileResult
   alias JidoCodeUi.Contracts.OrchestratorResult
+  alias JidoCodeUi.Contracts.RenderResult
   alias JidoCodeUi.Contracts.UiCommand
   alias JidoCodeUi.Contracts.UiSessionSnapshot
   alias JidoCodeUi.Contracts.UnifiedIurDocument
@@ -44,5 +45,21 @@ defmodule JidoCodeUi.ContractsNilNormalizationTest do
 
     orchestrator_result = OrchestratorResult.new(%{route_key: nil})
     assert orchestrator_result.route_key == nil
+  end
+
+  test "contract atom-key values remain authoritative when conflicting string keys are present" do
+    ui_command = UiCommand.new(%{"session_id" => "sess-string-fallback", session_id: nil})
+    assert ui_command.session_id == nil
+
+    widget_event =
+      WidgetUiEventEnvelope.new(%{"route_key" => "route-string-fallback", route_key: nil})
+
+    assert widget_event.route_key == nil
+
+    compile_result = CompileResult.new(%{"iur_hash" => "hash-string-fallback", iur_hash: nil})
+    assert compile_result.iur_hash == nil
+
+    render_result = RenderResult.new(%{"rendered" => true, rendered: false})
+    assert render_result.rendered == false
   end
 end
