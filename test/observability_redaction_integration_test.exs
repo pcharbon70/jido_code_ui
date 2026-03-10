@@ -204,6 +204,12 @@ defmodule JidoCodeUi.ObservabilityRedactionIntegrationTest do
            end)
 
     assert Enum.any?(events, fn event ->
+             event.event_name == "ui.command.received.v1" and
+               event.correlation_id == "cor-obs-redaction-widget" and
+               event.envelope_kind == "widget_ui_event"
+           end)
+
+    refute Enum.any?(events, fn event ->
              event.event_name == "ui.telemetry.validation.failed.v1" and
                event.source_event == "ui.command.received.v1" and
                event.correlation_id == "cor-obs-redaction-widget" and
