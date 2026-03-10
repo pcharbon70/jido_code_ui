@@ -1,6 +1,8 @@
 defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
   use ExUnit.Case, async: true
 
+  alias JidoCodeUi.Contracts.UiCommand
+  alias JidoCodeUi.Contracts.WidgetUiEventEnvelope
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Security.Policy
   alias JidoCodeUi.TypedError
@@ -27,10 +29,11 @@ defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
       policy_context: %{policy_version: "v2"}
     }
 
-    command = %{
-      command_type: "open_file",
-      payload: %{path: "lib/app.ex"}
-    }
+    command =
+      UiCommand.new(%{
+        command_type: "open_file",
+        payload: %{path: "lib/app.ex"}
+      })
 
     assert {:ok, decision} = Policy.authorize(context, command)
     assert decision.decision == :allow
@@ -53,10 +56,11 @@ defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
       policy_context: %{policy_version: "v3"}
     }
 
-    command = %{
-      command_type: "save_file",
-      payload: %{path: "lib/app.ex"}
-    }
+    command =
+      UiCommand.new(%{
+        command_type: "save_file",
+        payload: %{path: "lib/app.ex"}
+      })
 
     assert {:error,
             %TypedError{
@@ -82,10 +86,11 @@ defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
       policy_context: %{policy_version: "v1", feature_flags: %{custom_dsl_nodes: false}}
     }
 
-    command = %{
-      command_type: "save_file",
-      payload: %{custom_nodes: ["markdown.preview"]}
-    }
+    command =
+      UiCommand.new(%{
+        command_type: "save_file",
+        payload: %{custom_nodes: ["markdown.preview"]}
+      })
 
     assert {:error, %TypedError{error_code: "policy_custom_node_denied"}} =
              Policy.authorize(context, command)
@@ -116,10 +121,11 @@ defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
       }
     }
 
-    command = %{
-      command_type: "save_file",
-      payload: %{custom_nodes: ["markdown.preview"]}
-    }
+    command =
+      UiCommand.new(%{
+        command_type: "save_file",
+        payload: %{custom_nodes: ["markdown.preview"]}
+      })
 
     assert {:ok, decision} = Policy.authorize(context, command)
     assert decision.policy_version == "v4"
@@ -130,5 +136,32 @@ defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
                event.policy_version == "v4" and
                event.custom_nodes == ["markdown.preview"]
            end)
+  end
+
+  test "authorize accepts widget envelope contracts and resolves command type from event type" do
+    context = %{
+      correlation_id: "cor-pol-widget-allow",
+      request_id: "req-pol-widget-allow",
+      auth_context: %{
+        subject_id: "usr-viewer",
+        roles: ["viewer"],
+        authenticated: true
+      },
+      policy_context: %{policy_version: "v5"}
+    }
+
+    command =
+      WidgetUiEventEnvelope.new(%{
+        type: "unified.button.clicked",
+        widget_id: "wid-pol-widget",
+        data: %{action: "run"}
+      })
+
+    assert {:ok, decision} = Policy.authorize(context, command)
+    assert decision.decision == :allow
+    assert decision.policy_version == "v5"
+    assert decision.request.command.command_type == "unified.button.clicked"
+    assert decision.request.command.mutating? == false
+    assert decision.request.command.custom_nodes == []
   end
 end

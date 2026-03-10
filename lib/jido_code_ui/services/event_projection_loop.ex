@@ -83,10 +83,10 @@ defmodule JidoCodeUi.Services.EventProjectionLoop do
       Telemetry.emit("ui.event_projection.admitted.v1", %{
         correlation_id: admitted_event.correlation_id,
         request_id: admitted_event.request_id,
-        session_id: get_in(admitted_event, [:dispatch_context, :session_id]),
+        session_id: nested_value(admitted_event, [:dispatch_context, :session_id]),
         envelope_kind: to_string(admitted_event.envelope_kind),
-        widget_id: get_in(admitted_event, [:dispatch_context, :widget_id]),
-        route_key: get_in(admitted_event, [:dispatch_context, :route_key])
+        widget_id: nested_value(admitted_event, [:dispatch_context, :widget_id]),
+        route_key: nested_value(admitted_event, [:dispatch_context, :route_key])
       })
 
       {:ok, %{projected_event: projected_event, admitted_event: admitted_event}}
@@ -398,8 +398,8 @@ defmodule JidoCodeUi.Services.EventProjectionLoop do
   end
 
   defp emit_round_trip_outcome({:ok, result}, latency_ms, continuity) do
-    route_key = get_in(result, [:continuity, :route_key]) || "route-unset"
-    session_id = get_in(result, [:continuity, :session_id])
+    route_key = nested_value(result, [:continuity, :route_key]) || "route-unset"
+    session_id = nested_value(result, [:continuity, :session_id])
 
     Telemetry.emit("ui.render.event.round_trip.v1", %{
       outcome: "success",
@@ -504,6 +504,16 @@ defmodule JidoCodeUi.Services.EventProjectionLoop do
   end
 
   defp get_map(_map, _key), do: %{}
+
+  defp nested_value(value, []), do: value
+
+  defp nested_value(map, [key | rest]) when is_map(map) do
+    map
+    |> get_value(key)
+    |> nested_value(rest)
+  end
+
+  defp nested_value(_value, _path), do: nil
 
   defp elapsed_ms(started_at_us) do
     (System.monotonic_time(:microsecond) - started_at_us) / 1_000

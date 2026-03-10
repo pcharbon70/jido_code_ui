@@ -5,6 +5,8 @@ defmodule JidoCodeUi.Security.Policy do
 
   use GenServer
 
+  alias JidoCodeUi.Contracts.UiCommand
+  alias JidoCodeUi.Contracts.WidgetUiEventEnvelope
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.TypedError
@@ -13,12 +15,25 @@ defmodule JidoCodeUi.Security.Policy do
   @mutating_prefixes ["create_", "update_", "delete_", "save_", "apply_"]
   @mutation_roles MapSet.new(["admin", "editor"])
 
+  @type command_input :: UiCommand.t() | WidgetUiEventEnvelope.t() | map()
+
+  @type decision :: %{
+          decision: :allow,
+          policy_version: String.t(),
+          request: map(),
+          feature_flags: map(),
+          metadata: %{
+            mutating_command: boolean(),
+            custom_nodes: [String.t()]
+          }
+        }
+
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec authorize(map(), map()) :: {:ok, map()} | {:error, TypedError.t()}
+  @spec authorize(map(), command_input()) :: {:ok, decision()} | {:error, TypedError.t()}
   def authorize(context, command) when is_map(context) and is_map(command) do
     request = build_request(context, command)
 
@@ -121,8 +136,15 @@ defmodule JidoCodeUi.Security.Policy do
   end
 
   defp normalize_command(command) do
-    command_type = get_value(command, :command_type) || "unknown_command"
-    payload = get_map(command, :payload)
+    command_type =
+      get_value(command, :command_type) || get_value(command, :type) || "unknown_command"
+
+    payload =
+      first_non_empty_map([
+        get_map(command, :payload),
+        get_map(command, :data)
+      ])
+
     custom_nodes = extract_custom_nodes(payload)
 
     %{
@@ -288,6 +310,10 @@ defmodule JidoCodeUi.Security.Policy do
       value when is_boolean(value) -> value
       _ -> subject_id != "anonymous"
     end
+  end
+
+  defp first_non_empty_map(values) when is_list(values) do
+    Enum.find(values, %{}, fn value -> is_map(value) and value != %{} end)
   end
 
   defp get_map(map, key) when is_map(map) do
