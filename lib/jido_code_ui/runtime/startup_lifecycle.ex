@@ -54,7 +54,7 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
 
     {:ok,
      record_event(state, :startup_lifecycle_started, %{
-       expected_children: MapSet.to_list(expected_children)
+       expected_children: canonical_child_list(expected_children)
      })}
   end
 
@@ -65,7 +65,7 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
 
   @impl true
   def handle_call(:expected_children, _from, state) do
-    {:reply, MapSet.to_list(state.expected_children), state}
+    {:reply, canonical_child_list(state.expected_children), state}
   end
 
   @impl true
@@ -76,7 +76,7 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
       %{state | expected_children: expected_children}
       |> reset_startup_ready_emitted_if_not_ready()
       |> record_event(:startup_expected_children_updated, %{
-        expected_children: MapSet.to_list(expected_children)
+        expected_children: canonical_child_list(expected_children)
       })
       |> maybe_emit_startup_ready()
 
@@ -99,7 +99,7 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
         if(restart_event?, do: :startup_child_restarted, else: :startup_child_ready),
         %{
           child: child,
-          ready_children: MapSet.to_list(ready_children)
+          ready_children: canonical_child_list(ready_children)
         }
       )
       |> maybe_emit_startup_ready()
@@ -116,12 +116,12 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
       expected_ready_children =
         state.ready_children
         |> MapSet.intersection(state.expected_children)
-        |> MapSet.to_list()
+        |> canonical_child_list()
 
       state
       |> Map.put(:startup_ready_emitted, true)
       |> record_event(:startup_ready, %{
-        expected_children: MapSet.to_list(state.expected_children),
+        expected_children: canonical_child_list(state.expected_children),
         ready_children: expected_ready_children
       })
     else
@@ -135,6 +135,12 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
     else
       %{state | startup_ready_emitted: false}
     end
+  end
+
+  defp canonical_child_list(children_set) do
+    children_set
+    |> MapSet.to_list()
+    |> Enum.sort_by(&Atom.to_string/1)
   end
 
   defp record_event(state, event, extra_metadata) do
