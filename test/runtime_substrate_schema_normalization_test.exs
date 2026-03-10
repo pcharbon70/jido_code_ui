@@ -85,6 +85,21 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
     assert is_binary(admitted.widget_ui_event.timestamp)
     assert admitted.dispatch_context.widget_id == "widget-001"
     assert admitted.orchestrator_envelope.context.envelope_kind == :widget_ui_event
+
+    widget_command_event =
+      Enum.find(Telemetry.recent_events(20), fn event ->
+        event.event_name == "ui.command.received.v1" and event.correlation_id == "cor-555"
+      end)
+
+    assert widget_command_event.envelope_kind == "widget_ui_event"
+    refute Map.has_key?(widget_command_event, :session_id)
+
+    refute Enum.any?(Telemetry.recent_events(20), fn event ->
+             event.event_name == "ui.telemetry.validation.failed.v1" and
+               event.source_event == "ui.command.received.v1" and
+               event.correlation_id == "cor-555" and
+               "session_id" in event.missing_keys
+           end)
   end
 
   test "admit rejects malformed UiCommand payloads with schema-path diagnostics" do

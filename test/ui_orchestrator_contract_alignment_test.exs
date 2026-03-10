@@ -95,6 +95,38 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
            end)
   end
 
+  test "widget event execution omits session join keys from command-received telemetry" do
+    admitted =
+      admit_widget_event(%{
+        correlation_id: "cor-contract-widget",
+        request_id: "req-contract-widget",
+        auth_context: editor_auth("v4")
+      })
+
+    assert {:ok, result} = UiOrchestrator.execute(admitted, %{})
+    assert result.envelope_kind == :widget_ui_event
+
+    widget_command_events =
+      Telemetry.recent_events(150)
+      |> Enum.filter(fn event ->
+        event.event_name == "ui.command.received.v1" and
+          event.correlation_id == "cor-contract-widget"
+      end)
+
+    assert length(widget_command_events) >= 2
+
+    assert Enum.all?(widget_command_events, fn event ->
+             event.envelope_kind == "widget_ui_event" and not Map.has_key?(event, :session_id)
+           end)
+
+    refute Enum.any?(Telemetry.recent_events(150), fn event ->
+             event.event_name == "ui.telemetry.validation.failed.v1" and
+               event.source_event == "ui.command.received.v1" and
+               event.correlation_id == "cor-contract-widget" and
+               "session_id" in event.missing_keys
+           end)
+  end
+
   test "execute returns stage-specific typed failures for compile stage failures" do
     admitted =
       admit_command(%{
@@ -266,6 +298,20 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
       correlation_id: "cor-default",
       request_id: "req-default",
       payload: %{path: "lib/app.ex", contents: "hello"},
+      auth_context: editor_auth("v1")
+    }
+
+    {:ok, admitted} = Substrate.admit(Map.merge(base, overrides))
+    admitted
+  end
+
+  defp admit_widget_event(overrides) do
+    base = %{
+      type: "unified.button.clicked",
+      widget_id: "wid-contract-widget",
+      correlation_id: "cor-widget-default",
+      request_id: "req-widget-default",
+      data: %{action: "run"},
       auth_context: editor_auth("v1")
     }
 

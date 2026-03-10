@@ -621,22 +621,24 @@ defmodule JidoCodeUi.Runtime.Substrate do
   end
 
   defp emit_admitted_ingress(normalized_envelope) do
-    session_id =
-      case normalized_envelope.envelope_kind do
-        :ui_command ->
-          normalized_envelope |> get_key(:ui_command) |> get_key(:session_id)
-
-        :widget_ui_event ->
-          normalized_envelope |> get_key(:dispatch_context) |> get_key(:session_id)
-      end
-
-    Telemetry.emit("ui.command.received.v1", %{
+    base_payload = %{
       correlation_id: normalized_envelope.correlation_id,
       request_id: normalized_envelope.request_id,
-      session_id: session_id,
       envelope_kind: to_string(normalized_envelope.envelope_kind),
       schema_version: normalized_envelope.schema_version
-    })
+    }
+
+    payload =
+      case normalized_envelope.envelope_kind do
+        :ui_command ->
+          session_id = normalized_envelope |> get_key(:ui_command) |> get_key(:session_id)
+          Map.put(base_payload, :session_id, session_id)
+
+        :widget_ui_event ->
+          base_payload
+      end
+
+    Telemetry.emit("ui.command.received.v1", payload)
   end
 
   defp emit_denied_ingress(%TypedError{} = typed_error, envelope) do
