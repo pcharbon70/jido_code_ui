@@ -74,6 +74,7 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
 
     state =
       %{state | expected_children: expected_children}
+      |> reset_startup_ready_emitted_if_not_ready()
       |> record_event(:startup_expected_children_updated, %{
         expected_children: MapSet.to_list(expected_children)
       })
@@ -120,6 +121,14 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
       })
     else
       state
+    end
+  end
+
+  defp reset_startup_ready_emitted_if_not_ready(state) do
+    if ready_now?(state) do
+      state
+    else
+      %{state | startup_ready_emitted: false}
     end
   end
 
