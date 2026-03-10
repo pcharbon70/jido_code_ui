@@ -317,7 +317,7 @@ defmodule JidoCodeUi.Services.IurRenderer do
     Telemetry.emit("ui.iur.render.completed.v1", %{
       route_key: route_key,
       payload_class: payload_class_from_result(render_result),
-      iur_version: get_in(render_result, [:render_metadata, :iur_version]),
+      iur_version: nested_value(render_result, [:render_metadata, :iur_version]),
       correlation_id: continuity.correlation_id,
       request_id: continuity.request_id
     })
@@ -397,8 +397,8 @@ defmodule JidoCodeUi.Services.IurRenderer do
   end
 
   defp payload_class_from_result(render_result) do
-    normalize_string(get_in(render_result, [:render_metadata, :payload_class])) ||
-      payload_class(get_in(render_result, [:projection, :root]))
+    normalize_string(nested_value(render_result, [:render_metadata, :payload_class])) ||
+      payload_class(nested_value(render_result, [:projection, :root]))
   end
 
   defp classify_render_error("iur_invalid_document"), do: "invalid_iur"
@@ -448,14 +448,14 @@ defmodule JidoCodeUi.Services.IurRenderer do
 
   defp force_render_failure?(render_request) do
     get_value(render_request, :force_error) == true or
-      get_in(render_request, [
+      nested_value(render_request, [
         :compile_result,
         :dsl_document,
         :command,
         :payload,
         :force_render_error
       ]) == true or
-      get_in(render_request, [
+      nested_value(render_request, [
         :compile_result,
         :dsl_document,
         :root,
@@ -466,7 +466,7 @@ defmodule JidoCodeUi.Services.IurRenderer do
 
   defp force_render_timeout?(render_request) do
     get_value(render_request, :force_timeout) == true or
-      get_in(render_request, [
+      nested_value(render_request, [
         :compile_result,
         :dsl_document,
         :command,
@@ -508,6 +508,7 @@ defmodule JidoCodeUi.Services.IurRenderer do
 
   defp canonical_map(map) when is_map(map) do
     map
+    |> map_for_enumeration()
     |> Enum.map(fn {key, value} -> {to_string(key), canonical_value(value)} end)
     |> Enum.sort_by(fn {key, _value} -> key end)
     |> Map.new()
@@ -518,6 +519,9 @@ defmodule JidoCodeUi.Services.IurRenderer do
   defp canonical_value(value) when is_map(value), do: canonical_map(value)
   defp canonical_value(value) when is_list(value), do: Enum.map(value, &canonical_value/1)
   defp canonical_value(value), do: value
+
+  defp map_for_enumeration(%_{} = struct), do: Map.from_struct(struct)
+  defp map_for_enumeration(map), do: map
 
   defp hash_iur_document(iur_document) when is_map(iur_document) do
     :sha256
@@ -557,6 +561,16 @@ defmodule JidoCodeUi.Services.IurRenderer do
   end
 
   defp get_map(_map, _key), do: %{}
+
+  defp nested_value(value, []), do: value
+
+  defp nested_value(map, [key | rest]) when is_map(map) do
+    map
+    |> get_value(key)
+    |> nested_value(rest)
+  end
+
+  defp nested_value(_value, _path), do: nil
 
   defp elapsed_ms(started_at_us) do
     (System.monotonic_time(:microsecond) - started_at_us) / 1_000
