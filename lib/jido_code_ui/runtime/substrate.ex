@@ -227,7 +227,7 @@ defmodule JidoCodeUi.Runtime.Substrate do
   end
 
   defp normalize_auth_context(envelope, continuity_ids) do
-    case get_key(envelope, :auth_context) || get_key(envelope, :auth) do
+    case alias_value(envelope, :auth_context, :auth) do
       nil ->
         {:error,
          validation_error(
@@ -272,7 +272,7 @@ defmodule JidoCodeUi.Runtime.Substrate do
   end
 
   defp normalize_auth_subject(auth_map, continuity_ids) do
-    subject_id = get_key(auth_map, :subject_id) || get_key(auth_map, :actor_id)
+    subject_id = alias_value(auth_map, :subject_id, :actor_id)
 
     case subject_id do
       value when is_binary(value) ->
@@ -655,7 +655,7 @@ defmodule JidoCodeUi.Runtime.Substrate do
 
   defp emit_denied_ingress(%TypedError{} = typed_error, envelope) do
     policy_context =
-      case get_key(envelope, :auth_context) || get_key(envelope, :auth) do
+      case alias_value(envelope, :auth_context, :auth) do
         auth_map when is_map(auth_map) -> normalize_policy_context(auth_map)
         _ -> %{}
       end
@@ -692,4 +692,19 @@ defmodule JidoCodeUi.Runtime.Substrate do
   defp default_id(prefix) do
     prefix <> "-" <> Integer.to_string(System.unique_integer([:positive]))
   end
+
+  defp alias_value(map, primary_key, fallback_key) when is_map(map) do
+    cond do
+      has_key?(map, primary_key) ->
+        get_key(map, primary_key)
+
+      has_key?(map, fallback_key) ->
+        get_key(map, fallback_key)
+
+      true ->
+        nil
+    end
+  end
+
+  defp alias_value(_map, _primary_key, _fallback_key), do: nil
 end

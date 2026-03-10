@@ -221,6 +221,51 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
     assert admitted.orchestrator_envelope.context.auth_context.authenticated == false
   end
 
+  test "admit rejects explicit invalid auth_context even when auth alias is present" do
+    assert {:error,
+            %TypedError{
+              category: "ingress",
+              error_code: "ingress_auth_invalid",
+              stage: "ingress_auth"
+            } = typed_error} =
+             Substrate.admit(%{
+               "auth_context" => false,
+               command_type: "open_file",
+               session_id: "sess-auth-context-precedence",
+               correlation_id: "cor-auth-context-precedence",
+               request_id: "req-auth-context-precedence",
+               payload: %{path: "lib/foo.ex"},
+               auth: valid_auth_context()
+             })
+
+    assert typed_error.details.schema_path == "$.auth_context"
+  end
+
+  test "admit rejects explicit nil subject_id even when actor_id alias is present" do
+    assert {:error,
+            %TypedError{
+              category: "ingress",
+              error_code: "ingress_auth_invalid",
+              stage: "ingress_auth"
+            } = typed_error} =
+             Substrate.admit(%{
+               command_type: "open_file",
+               session_id: "sess-auth-subject-precedence",
+               correlation_id: "cor-auth-subject-precedence",
+               request_id: "req-auth-subject-precedence",
+               payload: %{path: "lib/foo.ex"},
+               auth_context: %{
+                 "subject_id" => nil,
+                 actor_id: "usr-auth-subject-fallback",
+                 roles: ["editor"],
+                 scopes: ["files:read"],
+                 policy_version: "v1"
+               }
+             })
+
+    assert typed_error.details.schema_path == "$.auth_context.subject_id"
+  end
+
   test "admit emits auth denied diagnostics for missing auth context" do
     assert {:error,
             %TypedError{
