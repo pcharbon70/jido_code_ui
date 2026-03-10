@@ -6,6 +6,7 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
 
   use GenServer
 
+  alias JidoCodeUi.Contracts.OrchestratorResult
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
@@ -24,7 +25,7 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec execute(map(), map()) :: {:ok, map()} | {:error, TypedError.t()}
+  @spec execute(map(), map()) :: {:ok, OrchestratorResult.t()} | {:error, TypedError.t()}
   def execute(command, context \\ %{}) when is_map(context) do
     with :ok <- StartupGuard.ensure_ready("orchestrator_execute", %{operation: "execute"}),
          {:ok, state} <- init_state(command, context),
@@ -515,7 +516,7 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
       input.continuity
       |> Map.put(:session_id, input.session_id)
 
-    %{
+    OrchestratorResult.new(%{
       status: :ok,
       route_key: state.route_key,
       stage_trace: state.stage_trace,
@@ -528,7 +529,7 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
       compile: state.compile_result,
       session: state.session_snapshot,
       render: state.render_result
-    }
+    })
   end
 
   defp emit_outcome_metric(outcome, state_or_error) do

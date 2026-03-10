@@ -1,6 +1,7 @@
 defmodule JidoCodeUi.IurRendererProjectionContractTest do
   use ExUnit.Case, async: false
 
+  alias JidoCodeUi.Contracts.RenderResult
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.Services.DslCompiler
@@ -36,6 +37,7 @@ defmodule JidoCodeUi.IurRendererProjectionContractTest do
                request_id: "req-render-projection"
              )
 
+    assert %RenderResult{} = rendered
     assert rendered.rendered == true
     assert rendered.projection.schema_version == "v1"
     assert rendered.projection.route_key == "route-render-projection"

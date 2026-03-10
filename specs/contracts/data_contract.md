@@ -14,5 +14,7 @@
 |---|---|---|---|
 | `UnifiedUiDslDocument` | `v1` | `JidoCodeUi.Services.DslCompiler` | Declarative UI input model for compile stage. |
 | `UnifiedIurDocument` | `v1` | `JidoCodeUi.Services.DslCompiler` | Canonical compile output consumed by renderer. |
+| `RenderResult` | `v1` | `JidoCodeUi.Services.IurRenderer` | Canonical render payload with projection, continuity, and event projection metadata. |
 | `UiSessionSnapshot` | `v1` | `JidoCodeUi.Session.RuntimeAgent` | In-memory session state + active IUR hash and compile metadata. |
+| `OrchestratorResult` | `v1` | `JidoCodeUi.Services.UiOrchestrator` | Canonical orchestrator success payload composed of policy, compile, session, and render outputs. |
 | `WidgetUiEventEnvelope` | `v1` | `JidoCodeUi.Runtime.Substrate` | Validated ingress envelope for UI interactions. |
