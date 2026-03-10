@@ -26,20 +26,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Run governance gates (fail-fast)
+        run: ./scripts/run_governance_gates.sh
+
       - name: Setup BEAM
         uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
           elixir-version: "1.18"
 
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
-
       - name: Install deps
         run: mix deps.get
 
       - name: Run conformance harness
-        run: ./scripts/run_conformance.sh | tee conformance-report.log
+        run: ./scripts/run_conformance.sh --skip-governance | tee conformance-report.log
 
       - name: Upload conformance report
         if: always()

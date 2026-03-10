@@ -15,6 +15,18 @@ fail() {
   failures=1
 }
 
+set_difference() {
+  local left="$1"
+  local right="$2"
+
+  while IFS= read -r id; do
+    [[ -z "$id" ]] && continue
+    if ! echo "$right" | grep -Fxq "$id"; then
+      echo "$id"
+    fi
+  done <<< "$left"
+}
+
 diff_for_file() {
   local file="$1"
   if [[ -n "${DIFF_RANGE:-}" ]]; then
@@ -39,6 +51,7 @@ fi
 
 COMPONENT_SPECS="$(rg -l '\`AC-[0-9]{2}\`' specs | sort | rg -v '^specs/conformance/' || true)"
 KNOWN_SCENARIOS="$(rg -o 'SCN-[0-9]+' "$SCENARIO_CATALOG" | sort -u || true)"
+MATRIX_SCENARIOS="$(rg -o 'SCN-[0-9]+' "$MATRIX" | sort -u || true)"
 
 if [[ -z "$COMPONENT_SPECS" ]]; then
   echo "INFO: no component specs with AC entries were found."
@@ -50,13 +63,28 @@ else
     if ! rg -q 'control_plane_ownership_matrix\.md' "$f"; then
       fail "missing control-plane matrix reference in $f"
     fi
+
+    if ! rg -q '^## Control Plane$' "$f"; then
+      fail "missing required '## Control Plane' section in $f"
+    fi
+
+    if ! rg -q '^Primary control-plane ownership:' "$f"; then
+      fail "missing primary control-plane ownership declaration in $f"
+    fi
   done <<< "$COMPONENT_SPECS"
 
   echo "Checking AC coverage mappings in conformance matrix..."
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
+    rows="$(grep -F "| \`$f\` |" "$MATRIX" || true)"
+    row_count="$(echo "$rows" | sed '/^$/d' | wc -l | tr -d ' ')"
 
-    row="$(grep -F "| \`$f\` |" "$MATRIX" | head -n1 || true)"
+    if [[ "$row_count" -gt 1 ]]; then
+      fail "duplicate conformance rows found for $f"
+      continue
+    fi
+
+    row="$(echo "$rows" | head -n1 || true)"
 
     if [[ -z "$row" ]]; then
       fail "missing conformance row for $f"
@@ -81,6 +109,20 @@ else
       fi
     done < <(echo "$scn_col" | rg -o 'SCN-[0-9]+' || true)
   done <<< "$COMPONENT_SPECS"
+fi
+
+echo "Checking scenario catalog and conformance matrix alignment..."
+MATRIX_MISSING_FROM_CATALOG="$(set_difference "$MATRIX_SCENARIOS" "$KNOWN_SCENARIOS")"
+CATALOG_MISSING_FROM_MATRIX="$(set_difference "$KNOWN_SCENARIOS" "$MATRIX_SCENARIOS")"
+
+if [[ -n "$MATRIX_MISSING_FROM_CATALOG" ]]; then
+  fail "conformance matrix references unknown scenario IDs:"
+  echo "$MATRIX_MISSING_FROM_CATALOG"
+fi
+
+if [[ -n "$CATALOG_MISSING_FROM_MATRIX" ]]; then
+  fail "scenario catalog IDs are missing from conformance matrix:"
+  echo "$CATALOG_MISSING_FROM_MATRIX"
 fi
 
 echo "Checking canonical runtime namespace references..."
@@ -153,6 +195,7 @@ if [[ -n "$CHANGED_FILES" ]]; then
   COMPONENT_CHANGED=0
   CONTRACT_CHANGED=0
   MATRIX_CHANGED=0
+  SCENARIO_CATALOG_CHANGED=0
   ADR_CHANGED=0
   ARCH_BASELINE_CHANGED=0
   AC_SHAPE_CHANGED=0
@@ -168,6 +211,10 @@ if [[ -n "$CHANGED_FILES" ]]; then
 
   if echo "$CHANGED_FILES" | rg -q '^specs/conformance/spec_conformance_matrix\.md$'; then
     MATRIX_CHANGED=1
+  fi
+
+  if echo "$CHANGED_FILES" | rg -q '^specs/conformance/scenario_catalog\.md$'; then
+    SCENARIO_CATALOG_CHANGED=1
   fi
 
   if echo "$CHANGED_FILES" | rg -q '^specs/adr/ADR-[0-9]{4}-.+\.md$'; then
@@ -211,6 +258,18 @@ if [[ -n "$CHANGED_FILES" ]]; then
 
   if [[ "$CONTRACT_CHANGED" -eq 1 && "$MATRIX_CHANGED" -eq 0 ]]; then
     fail "contract schema changes require conformance matrix updates."
+  fi
+
+  if [[ "$SCENARIO_CATALOG_CHANGED" -eq 1 && "$MATRIX_CHANGED" -eq 0 ]]; then
+    fail "scenario catalog changes require conformance matrix updates."
+  fi
+
+  if [[ "$MATRIX_CHANGED" -eq 1 && "$CONTRACT_CHANGED" -eq 0 && -z "$CHANGED_AC_COMPONENTS" ]]; then
+    fail "conformance matrix updates require coupled contract changes or AC-bearing component spec changes."
+  fi
+
+  if [[ "$SCENARIO_CATALOG_CHANGED" -eq 1 && "$CONTRACT_CHANGED" -eq 0 ]]; then
+    fail "scenario catalog updates require coupled contract changes."
   fi
 
   if [[ "$ARCH_BASELINE_CHANGED" -eq 1 && "$ADR_CHANGED" -eq 0 ]]; then
