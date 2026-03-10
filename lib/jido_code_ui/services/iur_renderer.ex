@@ -5,6 +5,7 @@ defmodule JidoCodeUi.Services.IurRenderer do
 
   use GenServer
 
+  alias JidoCodeUi.Contracts.RenderResult
   alias JidoCodeUi.Contracts.UnifiedIurDocument
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupGuard
@@ -23,7 +24,7 @@ defmodule JidoCodeUi.Services.IurRenderer do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec render(map(), keyword()) :: {:ok, map()} | {:error, TypedError.t()}
+  @spec render(map(), keyword()) :: {:ok, RenderResult.t()} | {:error, TypedError.t()}
   def render(render_request, opts \\ [])
 
   def render(render_request, opts) when is_map(render_request) and is_list(opts) do
@@ -221,7 +222,7 @@ defmodule JidoCodeUi.Services.IurRenderer do
       render_token: projected.render_token
     }
 
-    %{
+    RenderResult.new(%{
       rendered: true,
       projection: projected.projection,
       continuity: %{
@@ -237,7 +238,7 @@ defmodule JidoCodeUi.Services.IurRenderer do
         iur_version: normalized.iur_version,
         iur_hash: normalized.iur_hash
       }
-    }
+    })
   end
 
   defp project_node(node, route_key, path) when is_map(node) do

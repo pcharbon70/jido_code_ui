@@ -28,6 +28,26 @@ CompileResult {
   diagnostics: list
 }
 
+RenderResult {
+  rendered: boolean,
+  projection: map,
+  continuity: map,
+  event_projection: map,
+  render_metadata: map
+}
+
+OrchestratorResult {
+  status: atom,
+  route_key: string,
+  stage_trace: list,
+  envelope_kind: atom,
+  continuity: map,
+  policy: map,
+  compile: CompileResult,
+  session: map,
+  render: RenderResult
+}
+
 TypedError {
   error_code: string,
   category: string,

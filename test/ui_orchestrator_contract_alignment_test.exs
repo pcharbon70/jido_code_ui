@@ -1,6 +1,10 @@
 defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
   use ExUnit.Case, async: false
 
+  alias JidoCodeUi.Contracts.CompileResult
+  alias JidoCodeUi.Contracts.OrchestratorResult
+  alias JidoCodeUi.Contracts.RenderResult
+  alias JidoCodeUi.Contracts.UiSessionSnapshot
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.Runtime.Substrate
@@ -33,14 +37,17 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
 
     assert {:ok, result} = UiOrchestrator.execute(admitted, %{})
 
+    assert %OrchestratorResult{} = result
     assert result.status == :ok
     assert is_binary(result.route_key)
     assert result.envelope_kind == :ui_command
     assert result.stage_trace == [:validate, :policy, :compile, :session, :render]
     assert result.policy.decision == :allow
     assert result.policy.policy_version == "v2"
+    assert %CompileResult{} = result.compile
     assert result.compile.compile_authority == "server"
-    assert is_map(result.session)
+    assert %UiSessionSnapshot{} = result.session
+    assert %RenderResult{} = result.render
     assert result.render.rendered == true
     assert result.continuity.correlation_id == "cor-contract-success"
     assert result.continuity.request_id == "req-contract-success"
