@@ -366,13 +366,16 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
 
   defp continuity_ids(command, context) do
     correlation_id =
-      get_value(context, :correlation_id) || get_value(command, :correlation_id) ||
-        default_id("cor")
+      context
+      |> preferred_value(command, :correlation_id)
+      |> normalize_required_string(default_id("cor"))
 
     request_id =
-      get_value(context, :request_id) || get_value(command, :request_id) || default_id("req")
+      context
+      |> preferred_value(command, :request_id)
+      |> normalize_required_string(default_id("req"))
 
-    %{correlation_id: to_string(correlation_id), request_id: to_string(request_id)}
+    %{correlation_id: correlation_id, request_id: request_id}
   end
 
   defp select_auth_context(command, context) do
@@ -411,7 +414,9 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
   end
 
   defp session_id(payload, context) do
-    get_value(payload, :session_id) || get_value(context, :session_id)
+    context
+    |> preferred_value(payload, :session_id)
+    |> normalize_optional_string()
   end
 
   defp compile_command(%{envelope_kind: :widget_ui_event, payload: payload})
@@ -678,6 +683,48 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
   end
 
   defp get_value(_map, _key), do: nil
+
+  defp preferred_value(primary_map, fallback_map, key) do
+    cond do
+      has_key?(primary_map, key) ->
+        get_value(primary_map, key)
+
+      has_key?(fallback_map, key) ->
+        get_value(fallback_map, key)
+
+      true ->
+        nil
+    end
+  end
+
+  defp has_key?(map, key) when is_map(map) do
+    Map.has_key?(map, key) or
+      (is_atom(key) and Map.has_key?(map, Atom.to_string(key)))
+  end
+
+  defp has_key?(_map, _key), do: false
+
+  defp normalize_required_string(value, default) do
+    case normalize_optional_string(value) do
+      nil -> default
+      normalized -> normalized
+    end
+  end
+
+  defp normalize_optional_string(value) when is_binary(value) do
+    trimmed = String.trim(value)
+    if trimmed == "", do: nil, else: trimmed
+  end
+
+  defp normalize_optional_string(nil), do: nil
+
+  defp normalize_optional_string(value) when is_atom(value) do
+    value
+    |> Atom.to_string()
+    |> normalize_optional_string()
+  end
+
+  defp normalize_optional_string(_value), do: nil
 
   defp policy_version(policy_context) do
     case get_value(policy_context, :policy_version) do
