@@ -4,6 +4,4 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ROOT"
 
-./scripts/validate_specs_governance.sh
-./scripts/validate_guides_governance.sh
-./scripts/validate_rfc_governance.sh
+./scripts/run_governance_gates.sh

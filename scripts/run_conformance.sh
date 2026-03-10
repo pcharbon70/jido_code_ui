@@ -117,7 +117,7 @@ record_failure() {
 }
 
 if [[ "$SKIP_GOVERNANCE" -eq 0 ]]; then
-  ./scripts/validate_specs_governance.sh
+  ./scripts/run_governance_gates.sh
 fi
 
 echo "== Conformance Scenario Discovery =="

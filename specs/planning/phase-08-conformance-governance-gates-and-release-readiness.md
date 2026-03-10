@@ -35,22 +35,22 @@ Back to index: [README](./README.md)
       [x] 8.1.2.2 Subtask - Implement diagnostics for missing catalog, matrix, or test scenario mappings.
       [x] 8.1.2.3 Subtask - Implement conformance failure outputs linking to relevant contract/scenario rows.
 
-  [ ] 8.2 Section - Governance Gate Hardening
+  [x] 8.2 Section - Governance Gate Hardening
     Harden specs, guides, and RFC governance gates as release blockers.
 
-    [ ] 8.2.1 Task - Implement governance script consistency and change-policy checks
+    [x] 8.2.1 Task - Implement governance script consistency and change-policy checks
       Enforce governance change-policy requirements for contracts, conformance, and AC-bearing docs.
 
-      [ ] 8.2.1.1 Subtask - Implement governance checks ensuring contract and conformance updates remain coupled.
-      [ ] 8.2.1.2 Subtask - Implement governance checks for component AC mapping completeness.
-      [ ] 8.2.1.3 Subtask - Implement governance checks for canonical namespace and control-plane references.
+      [x] 8.2.1.1 Subtask - Implement governance checks ensuring contract and conformance updates remain coupled.
+      [x] 8.2.1.2 Subtask - Implement governance checks for component AC mapping completeness.
+      [x] 8.2.1.3 Subtask - Implement governance checks for canonical namespace and control-plane references.
 
-    [ ] 8.2.2 Task - Implement hook and CI workflow enforcement
+    [x] 8.2.2 Task - Implement hook and CI workflow enforcement
       Ensure local hooks and CI workflows execute governance gates consistently.
 
-      [ ] 8.2.2.1 Subtask - Implement pre-commit and pre-push hook parity for governance scripts.
-      [ ] 8.2.2.2 Subtask - Implement CI workflow parity across specs, guides, and conformance gates.
-      [ ] 8.2.2.3 Subtask - Implement failure-fast behavior for governance violations in PR pipelines.
+      [x] 8.2.2.1 Subtask - Implement pre-commit and pre-push hook parity for governance scripts.
+      [x] 8.2.2.2 Subtask - Implement CI workflow parity across specs, guides, and conformance gates.
+      [x] 8.2.2.3 Subtask - Implement failure-fast behavior for governance violations in PR pipelines.
 
   [ ] 8.3 Section - Release Readiness Automation
     Implement release readiness orchestration and gate regression checks.
