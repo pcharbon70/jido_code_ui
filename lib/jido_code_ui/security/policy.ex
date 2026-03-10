@@ -121,15 +121,26 @@ defmodule JidoCodeUi.Security.Policy do
       end
 
     subject_id =
-      get_value(actor_source, :subject_id) || get_value(actor_source, :actor_id) || "anonymous"
+      actor_source
+      |> alias_value(:subject_id, :actor_id)
+      |> normalize_optional_string()
+      |> case do
+        nil -> "anonymous"
+        value -> value
+      end
 
-    actor_type = get_value(actor_source, :actor_type) || "user"
+    actor_type =
+      case normalize_optional_string(get_value(actor_source, :actor_type)) do
+        nil -> "user"
+        value -> value
+      end
+
     roles = normalize_string_list(get_value(actor_source, :roles))
     authenticated = normalize_authenticated(actor_source, subject_id)
 
     %{
-      subject_id: to_string(subject_id),
-      actor_type: to_string(actor_type),
+      subject_id: subject_id,
+      actor_type: actor_type,
       roles: roles,
       authenticated: authenticated
     }
@@ -137,7 +148,13 @@ defmodule JidoCodeUi.Security.Policy do
 
   defp normalize_command(command) do
     command_type =
-      get_value(command, :command_type) || get_value(command, :type) || "unknown_command"
+      command
+      |> alias_value(:command_type, :type)
+      |> normalize_optional_string()
+      |> case do
+        nil -> "unknown_command"
+        value -> value
+      end
 
     payload =
       first_non_empty_map([
@@ -148,16 +165,28 @@ defmodule JidoCodeUi.Security.Policy do
     custom_nodes = extract_custom_nodes(payload)
 
     %{
-      command_type: to_string(command_type),
+      command_type: command_type,
       mutating?: mutating_command?(command_type, payload),
       custom_nodes: custom_nodes
     }
   end
 
   defp normalize_continuity(context) do
+    correlation_id =
+      case normalize_optional_string(get_value(context, :correlation_id)) do
+        nil -> default_id("cor")
+        value -> value
+      end
+
+    request_id =
+      case normalize_optional_string(get_value(context, :request_id)) do
+        nil -> default_id("req")
+        value -> value
+      end
+
     %{
-      correlation_id: to_string(get_value(context, :correlation_id) || default_id("cor")),
-      request_id: to_string(get_value(context, :request_id) || default_id("req"))
+      correlation_id: correlation_id,
+      request_id: request_id
     }
   end
 
@@ -339,6 +368,43 @@ defmodule JidoCodeUi.Security.Policy do
   end
 
   defp get_value(_map, _key), do: nil
+
+  defp has_key?(map, key) when is_map(map) do
+    Map.has_key?(map, key) or
+      (is_atom(key) and Map.has_key?(map, Atom.to_string(key)))
+  end
+
+  defp has_key?(_map, _key), do: false
+
+  defp alias_value(map, primary_key, fallback_key) when is_map(map) do
+    cond do
+      has_key?(map, primary_key) ->
+        get_value(map, primary_key)
+
+      has_key?(map, fallback_key) ->
+        get_value(map, fallback_key)
+
+      true ->
+        nil
+    end
+  end
+
+  defp alias_value(_map, _primary_key, _fallback_key), do: nil
+
+  defp normalize_optional_string(value) when is_binary(value) do
+    trimmed = String.trim(value)
+    if trimmed == "", do: nil, else: trimmed
+  end
+
+  defp normalize_optional_string(nil), do: nil
+
+  defp normalize_optional_string(value) when is_atom(value) do
+    value
+    |> Atom.to_string()
+    |> normalize_optional_string()
+  end
+
+  defp normalize_optional_string(_value), do: nil
 
   defp default_id(prefix) do
     prefix <> "-" <> Integer.to_string(System.unique_integer([:positive]))
