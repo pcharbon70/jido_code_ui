@@ -127,6 +127,8 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
           {:ok, Map.put(state, :compile_result, compile_result)}
 
         {:error, %TypedError{} = typed_error} ->
+          retention_outcome = retain_last_known_good(state, "compile", typed_error)
+
           Telemetry.emit("ui.dsl.compile.failed.v1", %{
             route_key: state.route_key,
             policy_version: policy_version,
@@ -141,7 +143,10 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
              "orchestrator_compile_failed",
              "Compile stage failed",
              "orchestrator_compile",
-             %{cause: typed_error.error_code}
+             Map.merge(
+               %{cause: typed_error.error_code},
+               retention_details(retention_outcome)
+             )
            )}
       end
     end
@@ -163,7 +168,9 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
              session_id: session_id,
              route_key: state.route_key,
              compile_result: state.compile_result,
-             policy_version: state.policy_decision.policy_version
+             policy_version: state.policy_decision.policy_version,
+             correlation_id: input.continuity.correlation_id,
+             request_id: input.continuity.request_id
            }) do
         {:ok, snapshot} ->
           Telemetry.emit("ui.orchestrator.stage.session.v1", %{
@@ -211,16 +218,48 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
              request_id: input.continuity.request_id
            ) do
         {:ok, render_result} ->
-          Telemetry.emit("ui.iur.render.completed.v1", %{
-            route_key: state.route_key,
-            policy_version: policy_version,
-            correlation_id: input.continuity.correlation_id,
-            request_id: input.continuity.request_id
-          })
+          case RuntimeAgent.update_session(state.session_snapshot.session_id, %{
+                 expected_revision: state.session_snapshot.revision,
+                 route_key: state.route_key,
+                 policy_version: policy_version,
+                 compile_result: state.compile_result,
+                 render_result: render_result,
+                 correlation_id: input.continuity.correlation_id,
+                 request_id: input.continuity.request_id
+               }) do
+            {:ok, updated_snapshot} ->
+              Telemetry.emit("ui.iur.render.completed.v1", %{
+                route_key: state.route_key,
+                policy_version: policy_version,
+                correlation_id: input.continuity.correlation_id,
+                request_id: input.continuity.request_id
+              })
 
-          {:ok, Map.put(state, :render_result, render_result)}
+              {:ok,
+               state
+               |> Map.put(:session_snapshot, updated_snapshot)
+               |> Map.put(:render_result, render_result)}
+
+            {:error, %TypedError{} = typed_error} ->
+              {:error,
+               orchestration_error(
+                 state,
+                 "orchestrator_session_failed",
+                 "Session stage failed",
+                 "orchestrator_session",
+                 %{cause: typed_error.error_code}
+               )}
+          end
 
         {:error, %TypedError{} = typed_error} ->
+          retention_outcome =
+            retain_last_known_good(
+              state,
+              "render",
+              typed_error,
+              state.session_snapshot.revision
+            )
+
           Telemetry.emit("ui.iur.render.failed.v1", %{
             route_key: state.route_key,
             policy_version: policy_version,
@@ -235,7 +274,10 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
              "orchestrator_render_failed",
              "Render stage failed",
              "orchestrator_render",
-             %{cause: typed_error.error_code}
+             Map.merge(
+               %{cause: typed_error.error_code},
+               retention_details(retention_outcome)
+             )
            )}
       end
     end
@@ -504,6 +546,76 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
 
     Telemetry.emit("ui.orchestrator.outcome.metric.v1", payload)
   end
+
+  defp retain_last_known_good(
+         state,
+         failed_stage,
+         %TypedError{} = cause_error,
+         expected_revision \\ nil
+       ) do
+    input = state.normalized_input
+    session_id = input.session_id || default_session_id(state.route_key)
+
+    retention_attrs =
+      %{
+        retention: %{
+          failed_stage: failed_stage,
+          error_code: cause_error.error_code,
+          error_category: cause_error.category,
+          error_stage: cause_error.stage,
+          details: cause_error.details || %{}
+        },
+        correlation_id: input.continuity.correlation_id,
+        request_id: input.continuity.request_id
+      }
+      |> maybe_put_expected_revision(expected_revision)
+
+    case RuntimeAgent.update_session(session_id, retention_attrs) do
+      {:ok, snapshot} ->
+        %{
+          status: rollback_status(snapshot),
+          session_id: snapshot.session_id,
+          error_code: nil
+        }
+
+      {:error, %TypedError{error_code: "session_not_found"}} ->
+        %{
+          status: "retention_not_applicable",
+          session_id: session_id,
+          error_code: "session_not_found"
+        }
+
+      {:error, %TypedError{} = typed_error} ->
+        %{
+          status: "retention_update_failed",
+          session_id: session_id,
+          error_code: typed_error.error_code
+        }
+    end
+  end
+
+  defp retention_details(retention_outcome) do
+    %{
+      retention_status: Map.get(retention_outcome, :status),
+      retention_session_id: Map.get(retention_outcome, :session_id),
+      retention_error_code: Map.get(retention_outcome, :error_code)
+    }
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+    |> Map.new()
+  end
+
+  defp rollback_status(snapshot) do
+    case get_in(snapshot, [:rollback, :status]) do
+      value when is_binary(value) and value != "" -> value
+      _ -> "retention_applied"
+    end
+  end
+
+  defp maybe_put_expected_revision(attrs, revision) when is_integer(revision) do
+    Map.put(attrs, :expected_revision, revision)
+  end
+
+  defp maybe_put_expected_revision(attrs, _revision), do: attrs
 
   defp outcome_type(%TypedError{category: "policy"}), do: "deny"
 
