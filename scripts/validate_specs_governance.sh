@@ -111,6 +111,23 @@ else
   done <<< "$COMPONENT_SPECS"
 fi
 
+echo "Checking governance-critical specs for unresolved TODO placeholders..."
+GOVERNANCE_CRITICAL_SPECS="$({
+  echo "$COMPONENT_SPECS"
+  echo "specs/operations/rfc_intake_governance.md"
+  echo "specs/operations/release_governance_and_rollout.md"
+} | sed '/^$/d' | sort -u)"
+
+while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
+  [[ -f "$f" ]] || continue
+
+  if rg -n 'TODO' "$f" >/dev/null; then
+    fail "unresolved TODO placeholder detected in governance-critical spec: $f"
+    rg -n 'TODO' "$f" || true
+  fi
+done <<< "$GOVERNANCE_CRITICAL_SPECS"
+
 echo "Checking scenario catalog and conformance matrix alignment..."
 MATRIX_MISSING_FROM_CATALOG="$(set_difference "$MATRIX_SCENARIOS" "$KNOWN_SCENARIOS")"
 CATALOG_MISSING_FROM_MATRIX="$(set_difference "$KNOWN_SCENARIOS" "$MATRIX_SCENARIOS")"
