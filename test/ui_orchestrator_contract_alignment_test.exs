@@ -105,6 +105,9 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
 
     assert {:ok, result} = UiOrchestrator.execute(admitted, %{})
     assert result.envelope_kind == :widget_ui_event
+    assert is_binary(result.session.session_id)
+    assert result.session.session_id != "nil"
+    assert String.starts_with?(result.session.session_id, "sess-")
 
     widget_command_events =
       Telemetry.recent_events(150)
@@ -117,6 +120,19 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
 
     assert Enum.all?(widget_command_events, fn event ->
              event.envelope_kind == "widget_ui_event" and not Map.has_key?(event, :session_id)
+           end)
+
+    session_transition_events =
+      Telemetry.recent_events(150)
+      |> Enum.filter(fn event ->
+        event.event_name == "ui.session.transition.v1" and
+          event.correlation_id == "cor-contract-widget"
+      end)
+
+    assert session_transition_events != []
+
+    assert Enum.all?(session_transition_events, fn event ->
+             is_binary(event.session_id) and event.session_id != "nil"
            end)
 
     refute Enum.any?(Telemetry.recent_events(150), fn event ->

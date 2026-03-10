@@ -74,6 +74,8 @@ defmodule JidoCodeUi.Contracts.CompileResult do
     if trimmed == "", do: nil, else: trimmed
   end
 
+  defp string_value(nil), do: nil
+
   defp string_value(value) when is_atom(value) do
     value
     |> Atom.to_string()

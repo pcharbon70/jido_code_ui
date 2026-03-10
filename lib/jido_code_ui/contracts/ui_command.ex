@@ -36,6 +36,9 @@ defmodule JidoCodeUi.Contracts.UiCommand do
         trimmed = String.trim(value)
         if trimmed == "", do: nil, else: trimmed
 
+      nil ->
+        nil
+
       value when is_atom(value) ->
         value
         |> Atom.to_string()
