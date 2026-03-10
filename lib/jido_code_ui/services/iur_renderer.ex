@@ -5,6 +5,7 @@ defmodule JidoCodeUi.Services.IurRenderer do
 
   use GenServer
 
+  alias JidoCodeUi.Contracts.UnifiedIurDocument
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
@@ -524,12 +525,25 @@ defmodule JidoCodeUi.Services.IurRenderer do
   defp map_for_enumeration(map), do: map
 
   defp hash_iur_document(iur_document) when is_map(iur_document) do
+    hash_payload = iur_document_for_hash(iur_document)
+
     :sha256
-    |> :crypto.hash(:erlang.term_to_binary(iur_document))
+    |> :crypto.hash(:erlang.term_to_binary(hash_payload))
     |> Base.encode16(case: :lower)
   end
 
   defp hash_iur_document(_iur_document), do: nil
+
+  defp iur_document_for_hash(%UnifiedIurDocument{} = iur_document) do
+    iur_document
+    |> UnifiedIurDocument.to_map()
+    |> canonical_map()
+  end
+
+  defp iur_document_for_hash(iur_document) when is_map(iur_document),
+    do: canonical_map(iur_document)
+
+  defp iur_document_for_hash(_iur_document), do: %{}
 
   defp first_non_empty_map(maps) when is_list(maps) do
     Enum.find(maps, %{}, fn map -> is_map(map) and map != %{} end)

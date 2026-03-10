@@ -92,6 +92,26 @@ defmodule JidoCodeUi.IurRendererProjectionContractTest do
            end)
   end
 
+  test "render derives canonical IUR hash when compile hash is omitted from struct contract" do
+    compile_result = compile_result_fixture()
+    expected_iur_hash = compile_result.iur_hash
+    compile_result_without_hash = Map.put(compile_result, :iur_hash, nil)
+
+    assert {:ok, rendered} =
+             IurRenderer.render(
+               %{
+                 compile_result: compile_result_without_hash,
+                 session_snapshot: %{session_id: "sess-render-hash-derive"},
+                 route_key: "route-render-hash-derive"
+               },
+               correlation_id: "cor-render-hash-derive",
+               request_id: "req-render-hash-derive"
+             )
+
+    assert rendered.projection.iur_hash == expected_iur_hash
+    assert rendered.render_metadata.iur_hash == expected_iur_hash
+  end
+
   defp compile_result_fixture do
     {:ok, result} =
       DslCompiler.compile(
