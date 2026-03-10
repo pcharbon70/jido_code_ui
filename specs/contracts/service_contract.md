@@ -62,3 +62,4 @@ TypedError {
 ## ADR References
 
 - [../adr/ADR-0001-control-plane-authority.md](../adr/ADR-0001-control-plane-authority.md)
+- [../adr/ADR-0002-typed-runtime-result-contracts.md](../adr/ADR-0002-typed-runtime-result-contracts.md)

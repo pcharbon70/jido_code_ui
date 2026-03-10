@@ -8,7 +8,7 @@ This matrix maps requirement families to owning contracts and canonical baseline
 | `REQ-SVC-001`..`REQ-SVC-005` | [../contracts/service_contract.md](../contracts/service_contract.md) | `JidoCodeUi.Services.UiOrchestrator`, `JidoCodeUi.Services.DslCompiler`, `JidoCodeUi.Services.IurRenderer` | `SCN-002`, `SCN-003`, `SCN-004`, `SCN-008` |
 | `REQ-OBS-001`..`REQ-OBS-005` | [../contracts/observability_contract.md](../contracts/observability_contract.md) | `JidoCodeUi.Observability.Telemetry`, `JidoCodeUi.Services.UiOrchestrator` | `SCN-003`, `SCN-005` |
 | `REQ-SEC-001`..`REQ-SEC-005` | [../contracts/security_contract.md](../contracts/security_contract.md) | `JidoCodeUi.Runtime.Substrate`, `JidoCodeUi.Security.Policy`, `JidoCodeUi.Services.UiOrchestrator` | `SCN-006`, `SCN-007`, `SCN-008` |
-| `REQ-DATA-001`..`REQ-DATA-005` | [../contracts/data_contract.md](../contracts/data_contract.md) | `JidoCodeUi.Services.DslCompiler`, `JidoCodeUi.Session.RuntimeAgent`, `JidoCodeUi.Services.IurRenderer` | `SCN-008` |
+| `REQ-DATA-001`..`REQ-DATA-005` | [../contracts/data_contract.md](../contracts/data_contract.md) | `JidoCodeUi.Services.DslCompiler`, `JidoCodeUi.Services.IurRenderer`, `JidoCodeUi.Services.UiOrchestrator`, `JidoCodeUi.Session.RuntimeAgent` | `SCN-003`, `SCN-004`, `SCN-008` |
 
 ## Acceptance Mapping Rule
 
