@@ -15,7 +15,7 @@ Back to index: [README](./README.md)
 - Sensitive prompt/code/token fields must be redacted in logs and telemetry.
 - Phase SCN focus: `SCN-005`, `SCN-007`.
 
-[ ] 7 Phase 7 - Observability Typed Errors and Redaction Baseline
+[x] 7 Phase 7 - Observability Typed Errors and Redaction Baseline
   Implement observability event families, metrics baselines, typed error normalization, and redaction controls across the full runtime pipeline.
 
   [x] 7.1 Section - Required Event Family Coverage
@@ -69,19 +69,19 @@ Back to index: [README](./README.md)
       [x] 7.3.2.2 Subtask - Emit redaction-miss alerts for unsafe field leakage attempts.
       [x] 7.3.2.3 Subtask - Emit policy-version metadata for redaction rule governance.
 
-  [ ] 7.4 Section - Phase 7 Integration Tests
+  [x] 7.4 Section - Phase 7 Integration Tests
     Validate telemetry coverage, typed error normalization, and redaction behavior end-to-end.
 
-    [ ] 7.4.1 Task - Telemetry completeness integration scenarios
+    [x] 7.4.1 Task - Telemetry completeness integration scenarios
       Verify required event families and metrics are emitted across success and failure flows.
 
-      [ ] 7.4.1.1 Subtask - Verify compile/render lifecycle event family coverage.
-      [ ] 7.4.1.2 Subtask - Verify policy denied and substrate reject telemetry coverage.
-      [ ] 7.4.1.3 Subtask - Verify continuity join keys are present in required events.
+      [x] 7.4.1.1 Subtask - Verify compile/render lifecycle event family coverage.
+      [x] 7.4.1.2 Subtask - Verify policy denied and substrate reject telemetry coverage.
+      [x] 7.4.1.3 Subtask - Verify continuity join keys are present in required events.
 
-    [ ] 7.4.2 Task - Redaction and typed error integration scenarios
+    [x] 7.4.2 Task - Redaction and typed error integration scenarios
       Verify sensitive data redaction and typed error metadata in failure telemetry.
 
-      [ ] 7.4.2.1 Subtask - Verify sensitive prompt/code/token fields are redacted in emitted telemetry.
-      [ ] 7.4.2.2 Subtask - Verify typed errors include category and stage metadata across failures.
-      [ ] 7.4.2.3 Subtask - Verify redaction misses and telemetry policy violations emit diagnostics.
+      [x] 7.4.2.1 Subtask - Verify sensitive prompt/code/token fields are redacted in emitted telemetry.
+      [x] 7.4.2.2 Subtask - Verify typed errors include category and stage metadata across failures.
+      [x] 7.4.2.3 Subtask - Verify redaction misses and telemetry policy violations emit diagnostics.

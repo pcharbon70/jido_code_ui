@@ -9,7 +9,7 @@ defmodule JidoCodeUi.Observability.Telemetry do
   require Logger
 
   @events_table :jido_code_ui_telemetry_events
-  @max_events 1200
+  @max_events 5000
   @session_join_key_events MapSet.new([
                              "ui.command.received.v1",
                              "ui.session.transition.v1",
