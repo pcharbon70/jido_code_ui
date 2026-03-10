@@ -76,6 +76,8 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
     assert Enum.any?(Telemetry.recent_events(100), fn event ->
              event.event_name == "ui.policy.denied.v1" and
                event.policy_version == "v9" and
+               event.error_category == "policy" and
+               event.error_stage == "policy_authorization" and
                event.correlation_id == "cor-contract-deny"
            end)
 
@@ -109,6 +111,14 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
     assert_event("ui.dsl.compile.failed.v1", "cor-contract-compile-fail")
 
     assert Enum.any?(Telemetry.recent_events(100), fn event ->
+             event.event_name == "ui.dsl.compile.failed.v1" and
+               event.policy_version == "v1" and
+               event.error_category == "compile" and
+               event.error_stage == "dsl_compile" and
+               event.correlation_id == "cor-contract-compile-fail"
+           end)
+
+    assert Enum.any?(Telemetry.recent_events(100), fn event ->
              event.event_name == "ui.orchestrator.outcome.metric.v1" and
                event.outcome == "failure" and
                event.correlation_id == "cor-contract-compile-fail"
@@ -136,6 +146,14 @@ defmodule JidoCodeUi.UiOrchestratorContractAlignmentTest do
             }} = UiOrchestrator.execute(admitted, %{})
 
     assert_event("ui.iur.render.failed.v1", "cor-contract-render-fail")
+
+    assert Enum.any?(Telemetry.recent_events(100), fn event ->
+             event.event_name == "ui.iur.render.failed.v1" and
+               event.policy_version == "v1" and
+               event.error_category == "render" and
+               event.error_stage == "iur_render_adapter" and
+               event.correlation_id == "cor-contract-render-fail"
+           end)
   end
 
   test "compile failure paths retain last-known-good session projection metadata" do

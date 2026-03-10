@@ -599,6 +599,8 @@ defmodule JidoCodeUi.Runtime.Substrate do
     if typed_error.stage == @auth_stage do
       Telemetry.emit("ui.ingress.auth.denied.v1", %{
         error_code: typed_error.error_code,
+        error_category: typed_error.category,
+        error_stage: typed_error.stage,
         correlation_id: typed_error.correlation_id,
         request_id: typed_error.request_id,
         details: typed_error.details
@@ -634,6 +636,8 @@ defmodule JidoCodeUi.Runtime.Substrate do
       message: typed_error.message,
       category: typed_error.category,
       stage: typed_error.stage,
+      error_category: typed_error.category,
+      error_stage: typed_error.stage,
       correlation_id: typed_error.correlation_id,
       request_id: typed_error.request_id,
       policy_context: policy_context

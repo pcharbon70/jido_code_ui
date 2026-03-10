@@ -35,22 +35,22 @@ Back to index: [README](./README.md)
       [x] 7.1.2.2 Subtask - Implement fallback handling for missing continuity metadata.
       [x] 7.1.2.3 Subtask - Emit telemetry validation failures as typed observability diagnostics.
 
-  [ ] 7.2 Section - Typed Error Normalization Baseline
+  [x] 7.2 Section - Typed Error Normalization Baseline
     Implement consistent typed error normalization across runtime stages.
 
-    [ ] 7.2.1 Task - Implement cross-stage typed error mapping
+    [x] 7.2.1 Task - Implement cross-stage typed error mapping
       Normalize errors from ingest, policy, compile, render, and session paths into canonical `TypedError` shape.
 
-      [ ] 7.2.1.1 Subtask - Define canonical error category and stage mapping table.
-      [ ] 7.2.1.2 Subtask - Implement mapping adapters in each runtime stage.
-      [ ] 7.2.1.3 Subtask - Implement typed error conformance checks against contract requirements.
+      [x] 7.2.1.1 Subtask - Define canonical error category and stage mapping table.
+      [x] 7.2.1.2 Subtask - Implement mapping adapters in each runtime stage.
+      [x] 7.2.1.3 Subtask - Implement typed error conformance checks against contract requirements.
 
-    [ ] 7.2.2 Task - Implement failure telemetry with typed metadata
+    [x] 7.2.2 Task - Implement failure telemetry with typed metadata
       Emit failure telemetry that includes typed error fields and stage context.
 
-      [ ] 7.2.2.1 Subtask - Emit typed error fields on failed compile and render events.
-      [ ] 7.2.2.2 Subtask - Emit typed error fields on policy denied and substrate reject events.
-      [ ] 7.2.2.3 Subtask - Emit typed error counters by category and stage for metrics baselines.
+      [x] 7.2.2.1 Subtask - Emit typed error fields on failed compile and render events.
+      [x] 7.2.2.2 Subtask - Emit typed error fields on policy denied and substrate reject events.
+      [x] 7.2.2.3 Subtask - Emit typed error counters by category and stage for metrics baselines.
 
   [ ] 7.3 Section - Sensitive Data Redaction Controls
     Implement redaction rules for sensitive payload fields in logs and telemetry streams.

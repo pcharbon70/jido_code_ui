@@ -133,6 +133,8 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
             route_key: state.route_key,
             policy_version: policy_version,
             error_code: typed_error.error_code,
+            error_category: typed_error.category,
+            error_stage: typed_error.stage,
             correlation_id: input.continuity.correlation_id,
             request_id: input.continuity.request_id
           })
@@ -264,6 +266,8 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
             route_key: state.route_key,
             policy_version: policy_version,
             error_code: typed_error.error_code,
+            error_category: typed_error.category,
+            error_stage: typed_error.stage,
             correlation_id: input.continuity.correlation_id,
             request_id: input.continuity.request_id
           })
@@ -475,6 +479,8 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
       policy_version:
         Map.get(typed_error.details || %{}, :policy_version) || input.policy_version,
       error_code: typed_error.error_code,
+      error_category: typed_error.category,
+      error_stage: typed_error.stage,
       correlation_id: typed_error.correlation_id,
       request_id: typed_error.request_id,
       redacted_command: redact_sensitive(input.payload || %{})
@@ -528,6 +534,8 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
           %{
             outcome: outcome,
             error_code: typed_error.error_code,
+            error_category: typed_error.category,
+            error_stage: typed_error.stage,
             correlation_id: typed_error.correlation_id,
             request_id: typed_error.request_id
           }

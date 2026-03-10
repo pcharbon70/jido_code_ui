@@ -3,6 +3,8 @@ defmodule JidoCodeUi.Observability.Telemetry do
   Lightweight telemetry emitter used by runtime startup and service lifecycle hooks.
   """
 
+  alias JidoCodeUi.TypedError
+
   require Logger
 
   @events_table :jido_code_ui_telemetry_events
@@ -35,6 +37,7 @@ defmodule JidoCodeUi.Observability.Telemetry do
 
     record_event(event)
     emit_contract_diagnostics(event_name, event)
+    emit_typed_error_diagnostics(event_name, event)
     Logger.debug(fn -> "#{event_name} #{inspect(normalized_metadata)}" end)
     :ok
   end
@@ -122,6 +125,73 @@ defmodule JidoCodeUi.Observability.Telemetry do
     :ok
   end
 
+  defp emit_typed_error_diagnostics(event_name, event) do
+    error_code = normalize_string(get_value(event, :error_code))
+
+    error_category =
+      normalize_string(get_value(event, :error_category)) ||
+        normalize_string(get_value(event, :category))
+
+    error_stage =
+      normalize_string(get_value(event, :error_stage)) ||
+        normalize_string(get_value(event, :stage))
+
+    if error_code && error_category && error_stage do
+      conformance = TypedError.conformance(error_code, error_category, error_stage)
+      status = conformance_status(conformance.status)
+
+      emit_diagnostic_event("ui.typed_error.conformance.v1", %{
+        source_event: event_name,
+        error_code: error_code,
+        error_category: error_category,
+        error_stage: error_stage,
+        status: status,
+        expected_category: conformance.expected_category,
+        expected_stage_prefix: conformance.expected_stage_prefix,
+        correlation_id: get_value(event, :correlation_id),
+        request_id: get_value(event, :request_id)
+      })
+
+      emit_diagnostic_event("ui.typed_error.metric.v1", %{
+        metric: "typed_error_total",
+        value: 1,
+        status: status,
+        error_code: error_code,
+        error_category: error_category,
+        error_stage: error_stage,
+        correlation_id: get_value(event, :correlation_id),
+        request_id: get_value(event, :request_id)
+      })
+
+      if conformance.status == :fail do
+        emit_diagnostic_event("ui.typed_error.metric.v1", %{
+          metric: "typed_error_conformance_failures_total",
+          value: 1,
+          status: status,
+          error_code: error_code,
+          error_category: error_category,
+          error_stage: error_stage,
+          correlation_id: get_value(event, :correlation_id),
+          request_id: get_value(event, :request_id)
+        })
+      end
+    end
+
+    :ok
+  end
+
+  defp emit_diagnostic_event(event_name, metadata) do
+    diagnostic =
+      metadata
+      |> Map.put(:event_name, event_name)
+      |> Map.put_new(:event_schema_version, "v1")
+      |> Map.put_new(:emitted_at, DateTime.utc_now())
+
+    record_event(diagnostic)
+    Logger.debug(fn -> "#{event_name} #{inspect(metadata)}" end)
+    :ok
+  end
+
   defp required_keys_for_event(event_name) do
     base_keys =
       if ui_event?(event_name), do: [:correlation_id, :request_id], else: []
@@ -152,6 +222,10 @@ defmodule JidoCodeUi.Observability.Telemetry do
     String.starts_with?(event_name, "ui.") and
       not String.starts_with?(event_name, "ui.telemetry.")
   end
+
+  defp conformance_status(:pass), do: "pass"
+  defp conformance_status(:fail), do: "fail"
+  defp conformance_status(_status), do: "unknown"
 
   defp get_value(map, key) when is_map(map) do
     if Map.has_key?(map, key) do
