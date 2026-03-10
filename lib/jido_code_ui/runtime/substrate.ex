@@ -6,6 +6,8 @@ defmodule JidoCodeUi.Runtime.Substrate do
 
   use GenServer
 
+  alias JidoCodeUi.Contracts.UiCommand
+  alias JidoCodeUi.Contracts.WidgetUiEventEnvelope
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
@@ -109,11 +111,12 @@ defmodule JidoCodeUi.Runtime.Substrate do
          envelope_kind: :ui_command,
          schema_version: @schema_version,
          admitted_at: DateTime.utc_now(),
-         ui_command: %{
-           command_type: command_type,
-           session_id: session_id,
-           payload: payload
-         },
+         ui_command:
+           UiCommand.new(%{
+             command_type: command_type,
+             session_id: session_id,
+             payload: payload
+           }),
          dispatch_context: %{
            session_id: session_id
          }
@@ -140,13 +143,13 @@ defmodule JidoCodeUi.Runtime.Substrate do
         optional_string(envelope, :render_token, nil) || optional_string(data, :render_token, nil)
 
       widget_ui_event =
-        %{
+        WidgetUiEventEnvelope.new(%{
           type: event_type,
           widget_id: widget_id,
           widget_kind: widget_kind,
           timestamp: timestamp,
           data: data
-        }
+        })
         |> put_optional(:session_id, session_id)
         |> put_optional(:route_key, route_key)
         |> put_optional(:render_token, render_token)
@@ -392,18 +395,24 @@ defmodule JidoCodeUi.Runtime.Substrate do
       |> Map.put(:envelope_kind, normalized_payload.envelope_kind)
       |> Map.put(:policy_context, auth_context.policy_context)
 
-    payload =
+    {payload_key, payload} =
       case normalized_payload.envelope_kind do
-        :ui_command -> normalized_payload.ui_command
-        :widget_ui_event -> normalized_payload.widget_ui_event
+        :ui_command -> {:ui_command, normalized_payload.ui_command}
+        :widget_ui_event -> {:widget_ui_event, normalized_payload.widget_ui_event}
       end
+
+    payload_with_continuity =
+      payload
+      |> Map.put(:correlation_id, continuity_ids.correlation_id)
+      |> Map.put(:request_id, continuity_ids.request_id)
 
     normalized_payload
     |> Map.merge(continuity_ids)
     |> Map.put(:auth_context, auth_context)
     |> Map.put(:dispatch_context, dispatch_context)
+    |> Map.put(payload_key, payload_with_continuity)
     |> Map.put(:orchestrator_envelope, %{
-      payload: payload,
+      payload: payload_with_continuity,
       context: orchestrator_context
     })
   end
@@ -421,7 +430,10 @@ defmodule JidoCodeUi.Runtime.Substrate do
   end
 
   defp get_key(map, key) do
-    Map.get(map, key) || Map.get(map, Atom.to_string(key))
+    case map do
+      value when is_map(value) -> Map.get(value, key) || Map.get(value, Atom.to_string(key))
+      _ -> nil
+    end
   end
 
   defp required_string(envelope, key, schema_path, expected_label) do
@@ -611,8 +623,11 @@ defmodule JidoCodeUi.Runtime.Substrate do
   defp emit_admitted_ingress(normalized_envelope) do
     session_id =
       case normalized_envelope.envelope_kind do
-        :ui_command -> get_in(normalized_envelope, [:ui_command, :session_id])
-        :widget_ui_event -> get_in(normalized_envelope, [:dispatch_context, :session_id])
+        :ui_command ->
+          normalized_envelope |> get_key(:ui_command) |> get_key(:session_id)
+
+        :widget_ui_event ->
+          normalized_envelope |> get_key(:dispatch_context) |> get_key(:session_id)
       end
 
     Telemetry.emit("ui.command.received.v1", %{

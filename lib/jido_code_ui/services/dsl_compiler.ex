@@ -6,6 +6,9 @@ defmodule JidoCodeUi.Services.DslCompiler do
 
   use GenServer
 
+  alias JidoCodeUi.Contracts.CompileResult
+  alias JidoCodeUi.Contracts.UnifiedIurDocument
+  alias JidoCodeUi.Contracts.UnifiedUiDslDocument
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
@@ -23,7 +26,7 @@ defmodule JidoCodeUi.Services.DslCompiler do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec compile(map(), keyword()) :: {:ok, map()} | {:error, TypedError.t()}
+  @spec compile(map(), keyword()) :: {:ok, CompileResult.t()} | {:error, TypedError.t()}
   def compile(compile_request, opts \\ [])
 
   def compile(compile_request, opts) when is_map(compile_request) and is_list(opts) do
@@ -91,16 +94,16 @@ defmodule JidoCodeUi.Services.DslCompiler do
         diagnostics = compile_diagnostics(normalized, custom_nodes)
 
         {:ok,
-         %{
+         CompileResult.new(%{
            compile_authority: "server",
            dsl_version: normalized.dsl_version,
            iur_version: @iur_version,
            iur_document: iur_document,
            iur_hash: iur_hash,
            diagnostics: diagnostics,
-           dsl_document: normalized.dsl_document,
+           dsl_document: UnifiedUiDslDocument.new(normalized.dsl_document),
            compile_opts: opts
-         }}
+         })}
       end
     end
   end
@@ -474,17 +477,16 @@ defmodule JidoCodeUi.Services.DslCompiler do
   defp build_iur_document(normalized) do
     root = normalized.dsl_document |> get_map(:root) |> canonical_iur_node()
 
-    %{
-      "iur_version" => @iur_version,
-      "dsl_version" => normalized.dsl_version,
-      "root" => root,
-      "metadata" =>
+    UnifiedIurDocument.new(%{
+      iur_version: @iur_version,
+      dsl_version: normalized.dsl_version,
+      root: root,
+      metadata:
         canonical_map(%{
           compile_authority: "server",
           policy_version: normalized.policy_version
         })
-    }
-    |> canonical_map()
+    })
   end
 
   defp canonical_iur_node(node) when is_map(node) do
@@ -527,6 +529,7 @@ defmodule JidoCodeUi.Services.DslCompiler do
 
   defp canonical_map(map) when is_map(map) do
     map
+    |> map_for_enumeration()
     |> Enum.map(fn {key, value} -> {to_string(key), canonical_value(value)} end)
     |> Enum.sort_by(fn {key, _value} -> key end)
     |> Map.new()
@@ -538,9 +541,14 @@ defmodule JidoCodeUi.Services.DslCompiler do
   defp canonical_value(value) when is_list(value), do: Enum.map(value, &canonical_value/1)
   defp canonical_value(value), do: value
 
+  defp map_for_enumeration(%_{} = struct), do: Map.from_struct(struct)
+  defp map_for_enumeration(map), do: map
+
   defp hash_iur_document(iur_document) do
+    hash_payload = iur_document_for_hash(iur_document)
+
     :sha256
-    |> :crypto.hash(:erlang.term_to_binary(iur_document))
+    |> :crypto.hash(:erlang.term_to_binary(hash_payload))
     |> Base.encode16(case: :lower)
   end
 
@@ -753,14 +761,14 @@ defmodule JidoCodeUi.Services.DslCompiler do
   defp signature_payload(iur_document, dsl_version) do
     %{
       "dsl_version" => dsl_version,
-      "root" => Map.get(iur_document, "root")
+      "root" => iur_root_node(iur_document)
     }
   end
 
   defp complexity_class(iur_document) when is_map(iur_document) do
     node_count =
       iur_document
-      |> Map.get("root")
+      |> iur_root_node()
       |> count_nodes()
 
     cond do
@@ -776,16 +784,36 @@ defmodule JidoCodeUi.Services.DslCompiler do
   defp count_nodes(nil), do: 0
 
   defp count_nodes(node) when is_map(node) do
-    children =
-      case Map.get(node, "children") do
-        list when is_list(list) -> list
-        _ -> []
-      end
+    children = node_children(node)
 
     1 + Enum.reduce(children, 0, fn child, acc -> acc + count_nodes(child) end)
   end
 
   defp count_nodes(_node), do: 0
+
+  defp iur_document_for_hash(%UnifiedIurDocument{} = iur_document) do
+    iur_document
+    |> UnifiedIurDocument.to_map()
+    |> canonical_map()
+  end
+
+  defp iur_document_for_hash(iur_document) when is_map(iur_document), do: iur_document
+  defp iur_document_for_hash(_iur_document), do: %{}
+
+  defp iur_root_node(%UnifiedIurDocument{} = iur_document), do: iur_document.root
+
+  defp iur_root_node(iur_document) when is_map(iur_document) do
+    Map.get(iur_document, "root") || Map.get(iur_document, :root)
+  end
+
+  defp iur_root_node(_iur_document), do: %{}
+
+  defp node_children(node) when is_map(node) do
+    case Map.get(node, "children") || Map.get(node, :children) do
+      list when is_list(list) -> list
+      _ -> []
+    end
+  end
 
   defp preview_dsl_version(compile_request, continuity) do
     case extract_dsl_document(compile_request, continuity) do
@@ -866,7 +894,7 @@ defmodule JidoCodeUi.Services.DslCompiler do
 
   defp force_compile_failure?(compile_request) do
     get_value(compile_request, :force_error) == true or
-      get_in(compile_request, [:command, :payload, :force_compile_error]) == true
+      nested_value(compile_request, [:command, :payload, :force_compile_error]) == true
   end
 
   defp validation_error(error_code, message, continuity, details) do
@@ -940,6 +968,16 @@ defmodule JidoCodeUi.Services.DslCompiler do
   end
 
   defp get_value(_map, _key), do: nil
+
+  defp nested_value(value, []), do: value
+
+  defp nested_value(map, [key | rest]) when is_map(map) do
+    map
+    |> get_value(key)
+    |> nested_value(rest)
+  end
+
+  defp nested_value(_value, _path), do: nil
 
   defp default_id(prefix) do
     prefix <> "-" <> Integer.to_string(System.unique_integer([:positive]))

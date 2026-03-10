@@ -5,6 +5,7 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
 
   use GenServer
 
+  alias JidoCodeUi.Contracts.UiSessionSnapshot
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupGuard
   alias JidoCodeUi.Runtime.StartupLifecycle
@@ -19,7 +20,7 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec create_session(map()) :: {:ok, map()} | {:error, TypedError.t()}
+  @spec create_session(map()) :: {:ok, UiSessionSnapshot.t()} | {:error, TypedError.t()}
   def create_session(attrs \\ %{})
 
   def create_session(attrs) when is_map(attrs) do
@@ -42,7 +43,8 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
      )}
   end
 
-  @spec update_session(String.t(), map()) :: {:ok, map()} | {:error, TypedError.t()}
+  @spec update_session(String.t(), map()) ::
+          {:ok, UiSessionSnapshot.t()} | {:error, TypedError.t()}
   def update_session(session_id, attrs) when is_binary(session_id) and is_map(attrs) do
     with :ok <-
            StartupGuard.ensure_ready("session_runtime_update", %{operation: "update_session"}) do
@@ -63,7 +65,8 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
      )}
   end
 
-  @spec replay_session(String.t(), list()) :: {:ok, map()} | {:error, TypedError.t()}
+  @spec replay_session(String.t(), list()) ::
+          {:ok, UiSessionSnapshot.t()} | {:error, TypedError.t()}
   def replay_session(session_id, event_stream)
       when is_binary(session_id) and is_list(event_stream) do
     with :ok <-
@@ -85,7 +88,7 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
      )}
   end
 
-  @spec current_snapshot(String.t()) :: {:ok, map()} | {:error, TypedError.t()}
+  @spec current_snapshot(String.t()) :: {:ok, UiSessionSnapshot.t()} | {:error, TypedError.t()}
   def current_snapshot(session_id) when is_binary(session_id) do
     with :ok <-
            StartupGuard.ensure_ready("session_runtime_snapshot", %{operation: "current_snapshot"}) do
@@ -210,28 +213,29 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
     compile_contract = compile_contract(compile_result)
     render_contract = render_contract(render_result)
 
-    snapshot = %{
-      schema_version: @snapshot_schema_version,
-      snapshot_kind: @snapshot_kind,
-      session_id: session_id,
-      route_key: resolve_route_key(attrs, nil),
-      continuity: continuity,
-      compile: compile_contract,
-      render: render_contract,
-      active_iur_hash: compile_contract.iur_hash,
-      replay: %{
-        status: "not_started",
-        event_count: 0,
-        expected_iur_hash: compile_contract.iur_hash,
-        actual_iur_hash: nil,
-        last_replay_at: nil
-      },
-      rollback: nil,
-      metadata: metadata_contract(attrs),
-      revision: 1,
-      created_at: DateTime.utc_now(),
-      updated_at: DateTime.utc_now()
-    }
+    snapshot =
+      UiSessionSnapshot.new(%{
+        schema_version: @snapshot_schema_version,
+        snapshot_kind: @snapshot_kind,
+        session_id: session_id,
+        route_key: resolve_route_key(attrs, nil),
+        continuity: continuity,
+        compile: compile_contract,
+        render: render_contract,
+        active_iur_hash: compile_contract.iur_hash,
+        replay: %{
+          status: "not_started",
+          event_count: 0,
+          expected_iur_hash: compile_contract.iur_hash,
+          actual_iur_hash: nil,
+          last_replay_at: nil
+        },
+        rollback: nil,
+        metadata: metadata_contract(attrs),
+        revision: 1,
+        created_at: DateTime.utc_now(),
+        updated_at: DateTime.utc_now()
+      })
 
     {:ok, snapshot}
   end
@@ -327,8 +331,8 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
              failed_stage: failed_stage,
              snapshot_revision: snapshot.revision,
              active_iur_hash: snapshot.active_iur_hash,
-             replay_status: get_in(snapshot, [:replay, :status]),
-             replay_event_count: get_in(snapshot, [:replay, :event_count]),
+             replay_status: nested_value(snapshot, [:replay, :status]),
+             replay_event_count: nested_value(snapshot, [:replay, :event_count]),
              rollback_status: "violation_no_known_good"
            }
          )}
@@ -350,8 +354,8 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
            retained_revision: snapshot.revision,
            retained_iur_hash: snapshot.active_iur_hash,
            retained_rendered: snapshot.render.rendered == true,
-           replay_status: get_in(snapshot, [:replay, :status]),
-           replay_event_count: get_in(snapshot, [:replay, :event_count]),
+           replay_status: nested_value(snapshot, [:replay, :status]),
+           replay_event_count: nested_value(snapshot, [:replay, :event_count]),
            diagnostics: normalize_optional_map(retention, :details),
            applied_at: DateTime.utc_now()
          }}
@@ -493,7 +497,7 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
   defp deterministic_session_id(attrs) do
     source =
       normalize_string(get_value(attrs, :route_key)) ||
-        normalize_string(get_in(attrs, [:compile_result, :iur_hash])) || "default"
+        normalize_string(nested_value(attrs, [:compile_result, :iur_hash])) || "default"
 
     "sess-" <> Integer.to_string(:erlang.phash2(source, 1_000_000))
   end
@@ -537,9 +541,10 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
     %{
       rendered: get_value(render_result, :rendered) == true,
       payload_class:
-        normalize_string(get_in(render_result, [:render_metadata, :payload_class])) || "unknown",
+        normalize_string(nested_value(render_result, [:render_metadata, :payload_class])) ||
+          "unknown",
       route_key:
-        normalize_string(get_in(render_result, [:projection, :route_key])) ||
+        normalize_string(nested_value(render_result, [:projection, :route_key])) ||
           normalize_string(get_value(continuity, :route_key)),
       render_token: normalize_string(get_value(continuity, :render_token))
     }
@@ -574,8 +579,8 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
              expected_revision: invalid,
              actual_revision: snapshot.revision,
              active_iur_hash: snapshot.active_iur_hash,
-             replay_status: get_in(snapshot, [:replay, :status]),
-             replay_event_count: get_in(snapshot, [:replay, :event_count])
+             replay_status: nested_value(snapshot, [:replay, :status]),
+             replay_event_count: nested_value(snapshot, [:replay, :event_count])
            }
          )}
     end
@@ -725,6 +730,16 @@ defmodule JidoCodeUi.Session.RuntimeAgent do
   end
 
   defp get_value(_map, _key), do: nil
+
+  defp nested_value(value, []), do: value
+
+  defp nested_value(map, [key | rest]) when is_map(map) do
+    map
+    |> get_value(key)
+    |> nested_value(rest)
+  end
+
+  defp nested_value(_value, _path), do: nil
 
   defp default_id(prefix) do
     prefix <> "-" <> Integer.to_string(System.unique_integer([:positive]))

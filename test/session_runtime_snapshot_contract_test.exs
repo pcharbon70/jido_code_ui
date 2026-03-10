@@ -1,6 +1,7 @@
 defmodule JidoCodeUi.SessionRuntimeSnapshotContractTest do
   use ExUnit.Case, async: false
 
+  alias JidoCodeUi.Contracts.UiSessionSnapshot
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.Session.RuntimeAgent
@@ -38,6 +39,7 @@ defmodule JidoCodeUi.SessionRuntimeSnapshotContractTest do
                request_id: "req-runtime-contract"
              })
 
+    assert %UiSessionSnapshot{} = snapshot
     assert snapshot.snapshot_kind == "UiSessionSnapshot"
     assert snapshot.schema_version == "v1"
     assert snapshot.session_id == "sess-runtime-contract"

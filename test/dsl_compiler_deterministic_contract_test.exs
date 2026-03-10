@@ -1,6 +1,9 @@
 defmodule JidoCodeUi.DslCompilerDeterministicContractTest do
   use ExUnit.Case, async: false
 
+  alias JidoCodeUi.Contracts.CompileResult
+  alias JidoCodeUi.Contracts.UnifiedIurDocument
+  alias JidoCodeUi.Contracts.UnifiedUiDslDocument
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.Services.DslCompiler
   alias JidoCodeUi.TypedError
@@ -25,10 +28,12 @@ defmodule JidoCodeUi.DslCompilerDeterministicContractTest do
                request_id: "req-compile-contract"
              )
 
+    assert %CompileResult{} = result
     assert result.compile_authority == "server"
     assert result.dsl_version == "v1"
     assert result.iur_version == "v1"
-    assert is_map(result.iur_document)
+    assert %UnifiedIurDocument{} = result.iur_document
+    assert %UnifiedUiDslDocument{} = result.dsl_document
     assert is_binary(result.iur_hash)
     assert String.length(result.iur_hash) == 64
     assert result.diagnostics == []

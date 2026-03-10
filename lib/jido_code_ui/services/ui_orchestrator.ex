@@ -489,6 +489,7 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
 
   defp redact_sensitive(value) when is_map(value) do
     value
+    |> map_for_enumeration()
     |> Enum.map(fn {key, nested_value} ->
       normalized_key = key |> to_string() |> String.downcase()
 
@@ -503,6 +504,9 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
 
   defp redact_sensitive(value) when is_list(value), do: Enum.map(value, &redact_sensitive/1)
   defp redact_sensitive(value), do: value
+
+  defp map_for_enumeration(%_{} = struct), do: Map.from_struct(struct)
+  defp map_for_enumeration(map), do: map
 
   defp success_output(state) do
     input = state.normalized_input
@@ -613,9 +617,15 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
   end
 
   defp rollback_status(snapshot) do
-    case get_in(snapshot, [:rollback, :status]) do
-      value when is_binary(value) and value != "" -> value
-      _ -> "retention_applied"
+    rollback = get_map(snapshot, :rollback)
+
+    case get_value(rollback, :status) do
+      value when is_binary(value) ->
+        trimmed = String.trim(value)
+        if trimmed == "", do: "retention_applied", else: trimmed
+
+      _ ->
+        "retention_applied"
     end
   end
 

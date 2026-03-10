@@ -1,6 +1,8 @@
 defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
   use ExUnit.Case, async: false
 
+  alias JidoCodeUi.Contracts.UiCommand
+  alias JidoCodeUi.Contracts.WidgetUiEventEnvelope
   alias JidoCodeUi.Observability.Telemetry
   alias JidoCodeUi.Runtime.StartupLifecycle
   alias JidoCodeUi.Runtime.Substrate
@@ -36,6 +38,7 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
     assert admitted.schema_version == "v1"
     assert admitted.correlation_id == "cor-123"
     assert admitted.request_id == "req-123"
+    assert %UiCommand{} = admitted.ui_command
     assert admitted.ui_command.command_type == "open_file"
     assert admitted.ui_command.session_id == "sess-123"
     assert admitted.ui_command.payload == %{"path" => "lib/foo.ex"}
@@ -74,6 +77,7 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
 
     assert admitted.envelope_kind == :widget_ui_event
     assert admitted.schema_version == "v1"
+    assert %WidgetUiEventEnvelope{} = admitted.widget_ui_event
     assert admitted.widget_ui_event.type == "unified.button.clicked"
     assert admitted.widget_ui_event.widget_id == "widget-001"
     assert admitted.widget_ui_event.widget_kind == "unknown_widget"
