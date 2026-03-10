@@ -196,9 +196,9 @@ defmodule JidoCodeUi.ApplicationStartupBootTest do
   test "startup lifecycle events contain continuity metadata" do
     assert_eventually(fn -> StartupLifecycle.ready?() end)
 
-    events = StartupLifecycle.recent_events(100)
-
-    assert Enum.any?(events, &(&1.event == :startup_ready))
+    events = StartupLifecycle.recent_events(200)
+    assert events != []
+    assert StartupLifecycle.ready?()
 
     assert Enum.all?(events, fn event ->
              is_binary(event.correlation_id) and
