@@ -75,11 +75,11 @@ defmodule JidoCodeUi.Runtime.Substrate do
 
   defp normalize_schema(envelope) do
     cond do
-      command_envelope?(envelope) ->
-        normalize_command_envelope(envelope)
-
       widget_event_envelope?(envelope) ->
         normalize_widget_event_envelope(envelope)
+
+      command_envelope?(envelope) ->
+        normalize_command_envelope(envelope)
 
       true ->
         {:error,
@@ -130,21 +130,40 @@ defmodule JidoCodeUi.Runtime.Substrate do
       widget_kind = optional_string(envelope, :widget_kind, "unknown_widget")
       timestamp = optional_timestamp(envelope, :timestamp)
 
+      session_id =
+        optional_string(envelope, :session_id, nil) || optional_string(data, :session_id, nil)
+
+      route_key =
+        optional_string(envelope, :route_key, nil) || optional_string(data, :route_key, nil)
+
+      render_token =
+        optional_string(envelope, :render_token, nil) || optional_string(data, :render_token, nil)
+
+      widget_ui_event =
+        %{
+          type: event_type,
+          widget_id: widget_id,
+          widget_kind: widget_kind,
+          timestamp: timestamp,
+          data: data
+        }
+        |> put_optional(:session_id, session_id)
+        |> put_optional(:route_key, route_key)
+        |> put_optional(:render_token, render_token)
+
+      dispatch_context =
+        %{widget_id: widget_id}
+        |> put_optional(:session_id, session_id)
+        |> put_optional(:route_key, route_key)
+        |> put_optional(:render_token, render_token)
+
       {:ok,
        %{
          envelope_kind: :widget_ui_event,
          schema_version: @schema_version,
          admitted_at: DateTime.utc_now(),
-         widget_ui_event: %{
-           type: event_type,
-           widget_id: widget_id,
-           widget_kind: widget_kind,
-           timestamp: timestamp,
-           data: data
-         },
-         dispatch_context: %{
-           widget_id: widget_id
-         }
+         widget_ui_event: widget_ui_event,
+         dispatch_context: dispatch_context
        }}
     end
   end
@@ -498,6 +517,9 @@ defmodule JidoCodeUi.Runtime.Substrate do
         DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
     end
   end
+
+  defp put_optional(map, _key, nil), do: map
+  defp put_optional(map, key, value), do: Map.put(map, key, value)
 
   defp validation_error(source, error_code, message, stage, details, category \\ "ingress") do
     {correlation_id, request_id} = continuity_ids_from(source)
