@@ -220,7 +220,7 @@ defmodule JidoCodeUi.ApplicationStartupBootTest do
     assert Enum.any?(StartupLifecycle.recent_events(200), fn event ->
              event.event == :startup_ready and
                Enum.sort(event.expected_children) == [probe_child] and
-               Enum.member?(event.ready_children, probe_child)
+               Enum.sort(event.ready_children) == [probe_child]
            end)
   end
 

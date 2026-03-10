@@ -113,11 +113,16 @@ defmodule JidoCodeUi.Runtime.StartupLifecycle do
 
   defp maybe_emit_startup_ready(state) do
     if ready_now?(state) and not state.startup_ready_emitted do
+      expected_ready_children =
+        state.ready_children
+        |> MapSet.intersection(state.expected_children)
+        |> MapSet.to_list()
+
       state
       |> Map.put(:startup_ready_emitted, true)
       |> record_event(:startup_ready, %{
         expected_children: MapSet.to_list(state.expected_children),
-        ready_children: MapSet.to_list(state.ready_children)
+        ready_children: expected_ready_children
       })
     else
       state
