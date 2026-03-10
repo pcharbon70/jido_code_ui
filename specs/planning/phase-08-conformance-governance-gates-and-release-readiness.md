@@ -15,7 +15,7 @@ Back to index: [README](./README.md)
 - Release-readiness automation remains the canonical pre-merge quality gate.
 - Runtime and docs governance are both in scope.
 
-[ ] 8 Phase 8 - Conformance Governance Gates and Release Readiness
+[x] 8 Phase 8 - Conformance Governance Gates and Release Readiness
   Implement end-to-end conformance coverage, governance gate hardening, and release-readiness automation for final delivery confidence.
 
   [x] 8.1 Section - SCN Conformance Harness Completion
@@ -69,19 +69,19 @@ Back to index: [README](./README.md)
       [x] 8.3.2.2 Subtask - Implement regression checks for required CI workflow files.
       [x] 8.3.2.3 Subtask - Implement regression diagnostics for missing gate dependencies.
 
-  [ ] 8.4 Section - Phase 8 Integration Tests
+  [x] 8.4 Section - Phase 8 Integration Tests
     Validate complete conformance and governance gate behavior under success and injected-failure conditions.
 
-    [ ] 8.4.1 Task - Full gate happy-path integration scenarios
+    [x] 8.4.1 Task - Full gate happy-path integration scenarios
       Verify release-readiness pipeline succeeds when all governance and conformance conditions are satisfied.
 
-      [ ] 8.4.1.1 Subtask - Verify full `SCN-001` through `SCN-008` alignment passes in conformance harness.
-      [ ] 8.4.1.2 Subtask - Verify specs, guides, and RFC governance scripts all pass in release sequencing.
-      [ ] 8.4.1.3 Subtask - Verify release gate emits expected stage markers and final PASS result.
+      [x] 8.4.1.1 Subtask - Verify full `SCN-001` through `SCN-008` alignment passes in conformance harness.
+      [x] 8.4.1.2 Subtask - Verify specs, guides, and RFC governance scripts all pass in release sequencing.
+      [x] 8.4.1.3 Subtask - Verify release gate emits expected stage markers and final PASS result.
 
-    [ ] 8.4.2 Task - Gate failure-injection integration scenarios
+    [x] 8.4.2 Task - Gate failure-injection integration scenarios
       Verify release-readiness fails fast and reports actionable diagnostics when gates regress.
 
-      [ ] 8.4.2.1 Subtask - Verify missing scenario coverage causes conformance gate failure with diagnostics.
-      [ ] 8.4.2.2 Subtask - Verify governance drift causes release gate failure before full tests.
-      [ ] 8.4.2.3 Subtask - Verify missing workflow or script dependencies trigger regression failure outputs.
+      [x] 8.4.2.1 Subtask - Verify missing scenario coverage causes conformance gate failure with diagnostics.
+      [x] 8.4.2.2 Subtask - Verify governance drift causes release gate failure before full tests.
+      [x] 8.4.2.3 Subtask - Verify missing workflow or script dependencies trigger regression failure outputs.

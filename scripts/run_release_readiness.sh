@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 usage() {
   cat <<'USAGE'
@@ -43,22 +43,6 @@ stage_marker() {
   echo "RELEASE_GATE_STAGE=${stage}:${state}"
 }
 
-current_stage=""
-
-on_error() {
-  local exit_code=$?
-
-  if [[ -n "$current_stage" ]]; then
-    stage_marker "$current_stage" "fail"
-  fi
-
-  echo "Release readiness gate failed."
-  echo "RELEASE_GATE_RESULT=FAIL"
-  exit "$exit_code"
-}
-
-trap on_error ERR
-
 run_stage() {
   local position="$1"
   local stage_id="$2"
@@ -66,11 +50,16 @@ run_stage() {
   shift 3
 
   echo "[$position/6] $label"
-  current_stage="$stage_id"
   stage_marker "$stage_id" "start"
-  "$@"
-  stage_marker "$stage_id" "pass"
-  current_stage=""
+
+  if "$@"; then
+    stage_marker "$stage_id" "pass"
+  else
+    stage_marker "$stage_id" "fail"
+    echo "Release readiness gate failed."
+    echo "RELEASE_GATE_RESULT=FAIL"
+    exit 1
+  fi
 }
 
 echo "== Release Readiness Gate =="
