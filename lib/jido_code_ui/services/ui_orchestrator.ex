@@ -64,13 +64,14 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
          {:ok, normalized_input} <- normalize_execute_input(state.raw_command, state.raw_context) do
       route_key = derive_route_key(normalized_input.envelope_kind, normalized_input.payload)
 
-      command_received_payload = %{
-        correlation_id: normalized_input.continuity.correlation_id,
-        request_id: normalized_input.continuity.request_id,
-        session_id: normalized_input.session_id,
-        envelope_kind: to_string(normalized_input.envelope_kind),
-        policy_version: normalized_input.policy_version
-      }
+      command_received_payload =
+        %{
+          correlation_id: normalized_input.continuity.correlation_id,
+          request_id: normalized_input.continuity.request_id,
+          envelope_kind: to_string(normalized_input.envelope_kind),
+          policy_version: normalized_input.policy_version
+        }
+        |> maybe_attach_session_join_key(normalized_input)
 
       Telemetry.emit("ui.command.received.v1", command_received_payload)
 
@@ -692,4 +693,13 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
   defp default_session_id(route_key) do
     "sess-orc-" <> Integer.to_string(:erlang.phash2(route_key, 1_000_000))
   end
+
+  defp maybe_attach_session_join_key(payload, %{
+         envelope_kind: :ui_command,
+         session_id: session_id
+       }) do
+    Map.put(payload, :session_id, session_id)
+  end
+
+  defp maybe_attach_session_join_key(payload, _normalized_input), do: payload
 end
