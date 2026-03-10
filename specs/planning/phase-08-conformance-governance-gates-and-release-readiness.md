@@ -18,22 +18,22 @@ Back to index: [README](./README.md)
 [ ] 8 Phase 8 - Conformance Governance Gates and Release Readiness
   Implement end-to-end conformance coverage, governance gate hardening, and release-readiness automation for final delivery confidence.
 
-  [ ] 8.1 Section - SCN Conformance Harness Completion
+  [x] 8.1 Section - SCN Conformance Harness Completion
     Implement complete executable scenario coverage and alignment checks across catalog, matrix, and tests.
 
-    [ ] 8.1.1 Task - Implement SCN scenario coverage completion
+    [x] 8.1.1 Task - Implement SCN scenario coverage completion
       Ensure conformance tests explicitly cover all canonical scenarios from `SCN-001` through `SCN-008`.
 
-      [ ] 8.1.1.1 Subtask - Implement missing scenario tests for uncovered runtime behaviors.
-      [ ] 8.1.1.2 Subtask - Implement scenario-to-requirement mapping validation in conformance harness.
-      [ ] 8.1.1.3 Subtask - Implement report output summarizing scenario alignment and coverage.
+      [x] 8.1.1.1 Subtask - Implement missing scenario tests for uncovered runtime behaviors.
+      [x] 8.1.1.2 Subtask - Implement scenario-to-requirement mapping validation in conformance harness.
+      [x] 8.1.1.3 Subtask - Implement report output summarizing scenario alignment and coverage.
 
-    [ ] 8.1.2 Task - Implement conformance determinism and failure diagnostics
+    [x] 8.1.2 Task - Implement conformance determinism and failure diagnostics
       Enforce deterministic conformance execution and actionable failure diagnostics.
 
-      [ ] 8.1.2.1 Subtask - Implement deterministic seed and execution settings for conformance runs.
-      [ ] 8.1.2.2 Subtask - Implement diagnostics for missing catalog, matrix, or test scenario mappings.
-      [ ] 8.1.2.3 Subtask - Implement conformance failure outputs linking to relevant contract/scenario rows.
+      [x] 8.1.2.1 Subtask - Implement deterministic seed and execution settings for conformance runs.
+      [x] 8.1.2.2 Subtask - Implement diagnostics for missing catalog, matrix, or test scenario mappings.
+      [x] 8.1.2.3 Subtask - Implement conformance failure outputs linking to relevant contract/scenario rows.
 
   [ ] 8.2 Section - Governance Gate Hardening
     Harden specs, guides, and RFC governance gates as release blockers.
