@@ -3,6 +3,7 @@ defmodule JidoCodeUi.Observability.Telemetry do
   Lightweight telemetry emitter used by runtime startup and service lifecycle hooks.
   """
 
+  alias JidoCodeUi.Observability.RedactionPolicy
   alias JidoCodeUi.TypedError
 
   require Logger
@@ -25,10 +26,11 @@ defmodule JidoCodeUi.Observability.Telemetry do
 
   @spec emit(String.t(), map()) :: :ok
   def emit(event_name, metadata) when is_binary(event_name) and is_map(metadata) do
-    normalized_metadata =
+    {normalized_metadata, redaction_report} =
       metadata
       |> ensure_continuity(event_name)
       |> put_event_version(event_name)
+      |> apply_redaction()
 
     event =
       normalized_metadata
@@ -38,6 +40,7 @@ defmodule JidoCodeUi.Observability.Telemetry do
     record_event(event)
     emit_contract_diagnostics(event_name, event)
     emit_typed_error_diagnostics(event_name, event)
+    emit_redaction_diagnostics(event_name, event, redaction_report)
     Logger.debug(fn -> "#{event_name} #{inspect(normalized_metadata)}" end)
     :ok
   end
@@ -180,6 +183,35 @@ defmodule JidoCodeUi.Observability.Telemetry do
     :ok
   end
 
+  defp emit_redaction_diagnostics(event_name, event, redaction_report) do
+    if redaction_report.redaction_applied do
+      emit_diagnostic_event("ui.redaction.applied.v1", %{
+        source_event: event_name,
+        redaction_policy_version: redaction_report.redaction_policy_version,
+        redacted_field_count: length(redaction_report.redacted_fields),
+        redacted_fields: redaction_report.redacted_fields,
+        correlation_id: get_value(event, :correlation_id),
+        request_id: get_value(event, :request_id)
+      })
+    end
+
+    if redaction_report.misses != [] do
+      emit_diagnostic_event("ui.redaction.miss.v1", %{
+        source_event: event_name,
+        redaction_policy_version: redaction_report.redaction_policy_version,
+        missed_paths: redaction_report.misses,
+        missed_count: length(redaction_report.misses),
+        error_code: "redaction_policy_miss",
+        error_category: "observability",
+        error_stage: "telemetry_redaction",
+        correlation_id: get_value(event, :correlation_id),
+        request_id: get_value(event, :request_id)
+      })
+    end
+
+    :ok
+  end
+
   defp emit_diagnostic_event(event_name, metadata) do
     diagnostic =
       metadata
@@ -226,6 +258,10 @@ defmodule JidoCodeUi.Observability.Telemetry do
   defp conformance_status(:pass), do: "pass"
   defp conformance_status(:fail), do: "fail"
   defp conformance_status(_status), do: "unknown"
+
+  defp apply_redaction(metadata) do
+    RedactionPolicy.redact(metadata)
+  end
 
   defp get_value(map, key) when is_map(map) do
     if Map.has_key?(map, key) do

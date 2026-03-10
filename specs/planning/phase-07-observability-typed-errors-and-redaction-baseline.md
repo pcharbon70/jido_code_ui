@@ -52,22 +52,22 @@ Back to index: [README](./README.md)
       [x] 7.2.2.2 Subtask - Emit typed error fields on policy denied and substrate reject events.
       [x] 7.2.2.3 Subtask - Emit typed error counters by category and stage for metrics baselines.
 
-  [ ] 7.3 Section - Sensitive Data Redaction Controls
+  [x] 7.3 Section - Sensitive Data Redaction Controls
     Implement redaction rules for sensitive payload fields in logs and telemetry streams.
 
-    [ ] 7.3.1 Task - Implement runtime redaction policy execution
+    [x] 7.3.1 Task - Implement runtime redaction policy execution
       Enforce sensitive field redaction for prompt fragments, code payloads, and token material.
 
-      [ ] 7.3.1.1 Subtask - Define redaction patterns and field classification for sensitive inputs.
-      [ ] 7.3.1.2 Subtask - Implement redaction transforms prior to telemetry emission.
-      [ ] 7.3.1.3 Subtask - Implement redaction coverage checks for denied and failure paths.
+      [x] 7.3.1.1 Subtask - Define redaction patterns and field classification for sensitive inputs.
+      [x] 7.3.1.2 Subtask - Implement redaction transforms prior to telemetry emission.
+      [x] 7.3.1.3 Subtask - Implement redaction coverage checks for denied and failure paths.
 
-    [ ] 7.3.2 Task - Implement redaction observability diagnostics
+    [x] 7.3.2 Task - Implement redaction observability diagnostics
       Emit diagnostics for redaction execution and redaction policy misses.
 
-      [ ] 7.3.2.1 Subtask - Emit redaction-applied indicators in relevant telemetry events.
-      [ ] 7.3.2.2 Subtask - Emit redaction-miss alerts for unsafe field leakage attempts.
-      [ ] 7.3.2.3 Subtask - Emit policy-version metadata for redaction rule governance.
+      [x] 7.3.2.1 Subtask - Emit redaction-applied indicators in relevant telemetry events.
+      [x] 7.3.2.2 Subtask - Emit redaction-miss alerts for unsafe field leakage attempts.
+      [x] 7.3.2.3 Subtask - Emit policy-version metadata for redaction rule governance.
 
   [ ] 7.4 Section - Phase 7 Integration Tests
     Validate telemetry coverage, typed error normalization, and redaction behavior end-to-end.
