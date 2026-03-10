@@ -3,6 +3,18 @@ defmodule JidoCodeUi.TypedError do
   Canonical typed error shape for runtime and startup failures.
   """
 
+  @conformance_rules [
+    %{prefix: "ingress_", category: "ingress", stage_prefix: "ingress_"},
+    %{prefix: "policy_", category: "policy", stage_prefix: "policy_"},
+    %{prefix: "dsl_", category: "compile", stage_prefix: "dsl_"},
+    %{prefix: "iur_", category: "render", stage_prefix: "iur_"},
+    %{prefix: "session_", category: "session", stage_prefix: "session_"},
+    %{prefix: "orchestrator_", category: "orchestration", stage_prefix: "orchestrator_"},
+    %{prefix: "startup_not_ready", category: "readiness", stage_prefix: "ingress_"},
+    %{prefix: "startup_", category: "startup", stage_prefix: "application_"},
+    %{prefix: "dependency_", category: "startup", stage_prefix: "application_"}
+  ]
+
   @enforce_keys [:error_code, :category, :stage, :retryable, :message]
   defstruct [
     :error_code,
@@ -24,6 +36,12 @@ defmodule JidoCodeUi.TypedError do
           details: map(),
           correlation_id: String.t(),
           request_id: String.t()
+        }
+
+  @type conformance_result :: %{
+          status: :pass | :fail | :unknown,
+          expected_category: String.t() | nil,
+          expected_stage_prefix: String.t() | nil
         }
 
   @spec new(keyword()) :: t()
@@ -141,6 +159,41 @@ defmodule JidoCodeUi.TypedError do
     end
   end
 
+  @spec conformance(t()) :: conformance_result()
+  def conformance(%__MODULE__{} = typed_error) do
+    conformance(typed_error.error_code, typed_error.category, typed_error.stage)
+  end
+
+  @spec conformance(String.t(), String.t(), String.t()) :: conformance_result()
+  def conformance(error_code, category, stage)
+      when is_binary(error_code) and is_binary(category) and is_binary(stage) do
+    case expected_mapping(error_code) do
+      nil ->
+        %{status: :unknown, expected_category: nil, expected_stage_prefix: nil}
+
+      %{category: expected_category, stage_prefix: expected_stage_prefix} ->
+        stage_matches? = String.starts_with?(stage, expected_stage_prefix)
+        category_matches? = category == expected_category
+
+        status =
+          if category_matches? and stage_matches? do
+            :pass
+          else
+            :fail
+          end
+
+        %{
+          status: status,
+          expected_category: expected_category,
+          expected_stage_prefix: expected_stage_prefix
+        }
+    end
+  end
+
+  def conformance(_error_code, _category, _stage) do
+    %{status: :unknown, expected_category: nil, expected_stage_prefix: nil}
+  end
+
   defp continuity_ids(opts) do
     %{
       correlation_id:
@@ -156,5 +209,11 @@ defmodule JidoCodeUi.TypedError do
           "req-" <> Integer.to_string(System.unique_integer([:positive]))
         )
     }
+  end
+
+  defp expected_mapping(error_code) do
+    Enum.find(@conformance_rules, fn rule ->
+      String.starts_with?(error_code, rule.prefix)
+    end)
   end
 end

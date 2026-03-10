@@ -110,6 +110,8 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
     assert Enum.any?(Telemetry.recent_events(20), fn event ->
              event.event_name == "ui.ingress.denied.v1" and
                event.error_code == "ingress_schema_invalid" and
+               event.error_category == "ingress" and
+               event.error_stage == "ingress_validation" and
                event.policy_context.policy_version == "v1"
            end)
 
@@ -175,6 +177,8 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
     assert Enum.any?(Telemetry.recent_events(20), fn event ->
              event.event_name == "ui.ingress.auth.denied.v1" and
                event.error_code == "ingress_auth_missing" and
+               event.error_category == "ingress" and
+               event.error_stage == "ingress_auth" and
                event.correlation_id == "cor-999"
            end)
   end
