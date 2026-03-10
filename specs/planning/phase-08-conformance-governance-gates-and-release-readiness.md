@@ -52,22 +52,22 @@ Back to index: [README](./README.md)
       [x] 8.2.2.2 Subtask - Implement CI workflow parity across specs, guides, and conformance gates.
       [x] 8.2.2.3 Subtask - Implement failure-fast behavior for governance violations in PR pipelines.
 
-  [ ] 8.3 Section - Release Readiness Automation
+  [x] 8.3 Section - Release Readiness Automation
     Implement release readiness orchestration and gate regression checks.
 
-    [ ] 8.3.1 Task - Implement release-readiness gate sequencing
+    [x] 8.3.1 Task - Implement release-readiness gate sequencing
       Enforce deterministic stage execution across governance, conformance, and tests.
 
-      [ ] 8.3.1.1 Subtask - Implement stage-sequenced execution for specs, guides, RFC, conformance, and full tests.
-      [ ] 8.3.1.2 Subtask - Implement report-only and skip-mode behavior consistency.
-      [ ] 8.3.1.3 Subtask - Implement explicit stage markers and final pass/fail result output.
+      [x] 8.3.1.1 Subtask - Implement stage-sequenced execution for specs, guides, RFC, conformance, and full tests.
+      [x] 8.3.1.2 Subtask - Implement report-only and skip-mode behavior consistency.
+      [x] 8.3.1.3 Subtask - Implement explicit stage markers and final pass/fail result output.
 
-    [ ] 8.3.2 Task - Implement gate regression detection and baseline protection
+    [x] 8.3.2 Task - Implement gate regression detection and baseline protection
       Detect and fail on missing or drifted release gate scripts and workflow dependencies.
 
-      [ ] 8.3.2.1 Subtask - Implement regression checks for required governance and conformance scripts.
-      [ ] 8.3.2.2 Subtask - Implement regression checks for required CI workflow files.
-      [ ] 8.3.2.3 Subtask - Implement regression diagnostics for missing gate dependencies.
+      [x] 8.3.2.1 Subtask - Implement regression checks for required governance and conformance scripts.
+      [x] 8.3.2.2 Subtask - Implement regression checks for required CI workflow files.
+      [x] 8.3.2.3 Subtask - Implement regression diagnostics for missing gate dependencies.
 
   [ ] 8.4 Section - Phase 8 Integration Tests
     Validate complete conformance and governance gate behavior under success and injected-failure conditions.
