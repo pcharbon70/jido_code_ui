@@ -208,6 +208,22 @@ defmodule JidoCodeUi.ApplicationStartupBootTest do
            end)
   end
 
+  test "startup lifecycle emits startup_ready after readiness recovery" do
+    probe_child = :runtime_probe_child
+
+    :ok = StartupLifecycle.set_expected_children([probe_child])
+    refute StartupLifecycle.ready?()
+
+    :ok = StartupLifecycle.mark_child_ready(probe_child)
+    assert_eventually(fn -> StartupLifecycle.ready?() end)
+
+    assert Enum.any?(StartupLifecycle.recent_events(200), fn event ->
+             event.event == :startup_ready and
+               Enum.sort(event.expected_children) == [probe_child] and
+               Enum.member?(event.ready_children, probe_child)
+           end)
+  end
+
   test "restart telemetry is emitted when a child restarts" do
     policy_pid = Process.whereis(JidoCodeUi.Security.Policy)
     assert is_pid(policy_pid)
