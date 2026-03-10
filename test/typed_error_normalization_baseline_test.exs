@@ -18,18 +18,51 @@ defmodule JidoCodeUi.TypedErrorNormalizationBaselineTest do
     assert %{status: :pass, expected_category: "compile", expected_stage_prefix: "dsl_"} =
              TypedError.conformance("dsl_schema_invalid", "compile", "dsl_validation")
 
-    assert %{status: :pass, expected_category: "boundary", expected_stage_prefix: "session_"} =
+    assert %{
+             status: :pass,
+             expected_category: "boundary",
+             expected_stage_prefix: ["session_", "startup_"]
+           } =
              TypedError.conformance(
                "session_authority_violation",
                "boundary",
                "session_mutation_authority"
              )
 
-    assert %{status: :fail, expected_category: "boundary", expected_stage_prefix: "session_"} =
+    assert %{
+             status: :fail,
+             expected_category: "boundary",
+             expected_stage_prefix: ["session_", "startup_"]
+           } =
              TypedError.conformance(
                "session_authority_violation",
                "session",
                "session_mutation_authority"
+             )
+
+    assert %{status: :pass, expected_category: "boundary", expected_stage_prefix: "startup_"} =
+             TypedError.conformance(
+               "startup_child_order_violation",
+               "boundary",
+               "startup_boundary"
+             )
+
+    assert %{status: :pass, expected_category: "boundary", expected_stage_prefix: "startup_"} =
+             TypedError.conformance(
+               "missing_required_child",
+               "boundary",
+               "startup_boundary"
+             )
+
+    assert %{
+             status: :pass,
+             expected_category: "readiness",
+             expected_stage_prefix: ["ingress_", "orchestrator_", "dsl_", "iur_", "session_"]
+           } =
+             TypedError.conformance(
+               "startup_not_ready",
+               "readiness",
+               "orchestrator_execute"
              )
 
     assert %{status: :fail, expected_category: "policy", expected_stage_prefix: "policy_"} =
@@ -108,6 +141,47 @@ defmodule JidoCodeUi.TypedErrorNormalizationBaselineTest do
              event.event_name == "ui.typed_error.metric.v1" and
                event.metric == "typed_error_conformance_failures_total" and
                event.error_code == "session_authority_violation"
+           end)
+  end
+
+  test "startup boundary and readiness errors emit pass diagnostics without failure counters" do
+    :ok =
+      Telemetry.emit("runtime.startup.boundary_denied", %{
+        error_code: "startup_child_order_violation",
+        category: "boundary",
+        stage: "startup_boundary",
+        correlation_id: "cor-startup-boundary-pass",
+        request_id: "req-startup-boundary-pass"
+      })
+
+    :ok =
+      Telemetry.emit("ui.orchestrator.outcome.metric.v1", %{
+        error_code: "startup_not_ready",
+        error_category: "readiness",
+        error_stage: "orchestrator_execute",
+        outcome: "failure",
+        correlation_id: "cor-startup-ready-pass",
+        request_id: "req-startup-ready-pass"
+      })
+
+    events = Telemetry.recent_events(80)
+
+    assert Enum.any?(events, fn event ->
+             event.event_name == "ui.typed_error.conformance.v1" and
+               event.error_code == "startup_child_order_violation" and
+               event.status == "pass"
+           end)
+
+    assert Enum.any?(events, fn event ->
+             event.event_name == "ui.typed_error.conformance.v1" and
+               event.error_code == "startup_not_ready" and
+               event.status == "pass"
+           end)
+
+    refute Enum.any?(events, fn event ->
+             event.event_name == "ui.typed_error.metric.v1" and
+               event.metric == "typed_error_conformance_failures_total" and
+               event.error_code in ["startup_child_order_violation", "startup_not_ready"]
            end)
   end
 end
