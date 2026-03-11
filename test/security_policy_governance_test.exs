@@ -125,6 +125,55 @@ defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
              Policy.authorize(context, command)
   end
 
+  test "authorize treats explicit nil subject_id as authoritative over actor_id fallback" do
+    context = %{
+      correlation_id: "cor-pol-subject-id-nil",
+      request_id: "req-pol-subject-id-nil",
+      auth_context: %{
+        subject_id: nil,
+        actor_id: "usr-editor",
+        roles: ["editor"]
+      },
+      policy_context: %{policy_version: "v1"}
+    }
+
+    command =
+      UiCommand.new(%{
+        command_type: "open_file",
+        payload: %{path: "lib/app.ex"}
+      })
+
+    assert {:error, %TypedError{error_code: "policy_auth_required"} = typed_error} =
+             Policy.authorize(context, command)
+
+    assert typed_error.details.actor.subject_id == "anonymous"
+  end
+
+  test "authorize generates continuity ids when explicit nil continuity keys are provided" do
+    context = %{
+      correlation_id: nil,
+      request_id: nil,
+      auth_context: %{
+        subject_id: "usr-editor",
+        roles: ["editor"],
+        authenticated: true
+      },
+      policy_context: %{policy_version: "v1"}
+    }
+
+    command =
+      UiCommand.new(%{
+        command_type: "open_file",
+        payload: %{path: "lib/app.ex"}
+      })
+
+    assert {:ok, decision} = Policy.authorize(context, command)
+    assert String.starts_with?(decision.request.continuity.correlation_id, "cor-")
+    assert String.starts_with?(decision.request.continuity.request_id, "req-")
+    refute decision.request.continuity.correlation_id == "nil"
+    refute decision.request.continuity.request_id == "nil"
+  end
+
   test "authorize honors explicit custom-node flag false over conflicting string-key fallback" do
     context = %{
       correlation_id: "cor-pol-custom-flag-precedence",
