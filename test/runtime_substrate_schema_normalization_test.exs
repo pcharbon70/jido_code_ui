@@ -221,6 +221,54 @@ defmodule JidoCodeUi.RuntimeSubstrateSchemaNormalizationTest do
     assert admitted.orchestrator_envelope.context.auth_context.authenticated == false
   end
 
+  test "admit honors explicit nil policy_context policy_version over top-level fallback" do
+    assert {:ok, admitted} =
+             Substrate.admit(%{
+               command_type: "open_file",
+               session_id: "sess-policy-version-precedence",
+               correlation_id: "cor-policy-version-precedence",
+               request_id: "req-policy-version-precedence",
+               payload: %{path: "lib/foo.ex"},
+               auth_context: %{
+                 subject_id: "usr-policy-version-precedence",
+                 roles: ["editor"],
+                 scopes: ["files:read"],
+                 policy_version: "v9",
+                 policy_context: %{policy_version: nil}
+               }
+             })
+
+    assert admitted.auth_context.policy_context.policy_version == "v1"
+    assert admitted.orchestrator_envelope.context.policy_context.policy_version == "v1"
+  end
+
+  test "admit honors explicit invalid policy_context feature_flags over top-level fallback" do
+    assert {:ok, admitted} =
+             Substrate.admit(%{
+               command_type: "open_file",
+               session_id: "sess-feature-flags-precedence",
+               correlation_id: "cor-feature-flags-precedence",
+               request_id: "req-feature-flags-precedence",
+               payload: %{path: "lib/foo.ex"},
+               auth_context: %{
+                 subject_id: "usr-feature-flags-precedence",
+                 roles: ["editor"],
+                 scopes: ["files:read"],
+                 feature_flags: %{
+                   custom_dsl_nodes: true,
+                   custom_node_allowlist: ["markdown.preview"]
+                 },
+                 policy_context: %{
+                   policy_version: "v2",
+                   feature_flags: nil
+                 }
+               }
+             })
+
+    assert admitted.auth_context.policy_context.feature_flags == %{}
+    assert admitted.orchestrator_envelope.context.policy_context.feature_flags == %{}
+  end
+
   test "admit rejects explicit invalid auth_context even when auth alias is present" do
     assert {:error,
             %TypedError{
