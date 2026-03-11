@@ -114,6 +114,48 @@ defmodule JidoCodeUi.IurRendererProjectionContractTest do
     assert rendered.render_metadata.iur_hash == expected_iur_hash
   end
 
+  test "render treats explicit compile_result iur_document nil as authoritative and rejects top-level fallback" do
+    compile_result = compile_result_fixture()
+    compile_result_with_nil_document = Map.put(compile_result, :iur_document, nil)
+
+    assert {:error,
+            %TypedError{
+              category: "render",
+              stage: "iur_render_validation",
+              error_code: "iur_invalid_document"
+            }} =
+             IurRenderer.render(
+               %{
+                 compile_result: compile_result_with_nil_document,
+                 iur_document: compile_result.iur_document,
+                 route_key: "route-render-authority-document"
+               },
+               correlation_id: "cor-render-authority-document",
+               request_id: "req-render-authority-document"
+             )
+  end
+
+  test "render treats explicit compile_result iur_version nil as authoritative and rejects top-level fallback" do
+    compile_result = compile_result_fixture()
+    compile_result_with_nil_version = Map.put(compile_result, :iur_version, nil)
+
+    assert {:error,
+            %TypedError{
+              category: "render",
+              stage: "iur_render_validation",
+              error_code: "iur_invalid_document"
+            }} =
+             IurRenderer.render(
+               %{
+                 compile_result: compile_result_with_nil_version,
+                 iur_version: "v1",
+                 route_key: "route-render-authority-version"
+               },
+               correlation_id: "cor-render-authority-version",
+               request_id: "req-render-authority-version"
+             )
+  end
+
   defp compile_result_fixture do
     {:ok, result} =
       DslCompiler.compile(
