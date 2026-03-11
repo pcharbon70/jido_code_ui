@@ -402,15 +402,22 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
     context_policy_context = get_map(context, :policy_context)
     auth_policy_context = get_map(auth_context, :policy_context)
 
-    merged_feature_flags =
-      merge_authoritative_maps(
-        get_map(auth_policy_context, :feature_flags),
-        get_map(context_policy_context, :feature_flags)
-      )
-
     context_policy_context
     |> Map.merge(auth_policy_context)
-    |> put_feature_flags(merged_feature_flags)
+    |> put_feature_flags(select_feature_flags(auth_policy_context, context_policy_context))
+  end
+
+  defp select_feature_flags(auth_policy_context, context_policy_context) do
+    cond do
+      has_key?(auth_policy_context, :feature_flags) ->
+        get_map(auth_policy_context, :feature_flags)
+
+      has_key?(context_policy_context, :feature_flags) ->
+        get_map(context_policy_context, :feature_flags)
+
+      true ->
+        %{}
+    end
   end
 
   defp session_id(payload, context) do
@@ -662,18 +669,11 @@ defmodule JidoCodeUi.Services.UiOrchestrator do
   defp get_map(_map, _key), do: %{}
 
   defp put_feature_flags(policy_context, feature_flags) do
-    if feature_flags == %{} do
-      policy_context
-    else
+    if has_key?(policy_context, :feature_flags) or feature_flags != %{} do
       Map.put(policy_context, :feature_flags, feature_flags)
+    else
+      policy_context
     end
-  end
-
-  # Merge map values with primary-map authority for conflicting keys.
-  defp merge_authoritative_maps(primary_map, fallback_map)
-       when is_map(primary_map) and is_map(fallback_map) do
-    fallback_map
-    |> Map.merge(primary_map)
   end
 
   defp get_value(map, key) when is_map(map) do

@@ -204,6 +204,82 @@ defmodule JidoCodeUi.UiOrchestratorPolicyIntegrationTest do
            end)
   end
 
+  test "execute treats explicit nil auth policy feature_flags as authoritative over execute context" do
+    admitted =
+      admit(%{
+        correlation_id: "cor-int-policy-feature-nil",
+        request_id: "req-int-policy-feature-nil",
+        auth_context: %{
+          subject_id: "usr-editor",
+          roles: ["editor"],
+          authenticated: true,
+          policy_context: %{
+            policy_version: "v9",
+            feature_flags: nil
+          }
+        },
+        payload: %{path: "lib/app.ex", custom_nodes: ["markdown.preview"]}
+      })
+
+    execute_context = %{
+      policy_context: %{
+        policy_version: "v1",
+        feature_flags: %{
+          custom_dsl_nodes: true,
+          custom_node_allowlist: ["markdown.preview"]
+        }
+      }
+    }
+
+    assert {:error, %TypedError{error_code: "policy_custom_node_denied"} = typed_error} =
+             UiOrchestrator.execute(admitted, execute_context)
+
+    assert typed_error.details.policy_version == "v9"
+
+    refute Enum.any?(Telemetry.recent_events(200), fn event ->
+             event.event_name == "ui.dsl.compile.started.v1" and
+               event.correlation_id == "cor-int-policy-feature-nil"
+           end)
+  end
+
+  test "execute treats explicit empty auth policy feature_flags as authoritative over execute context" do
+    admitted =
+      admit(%{
+        correlation_id: "cor-int-policy-feature-empty",
+        request_id: "req-int-policy-feature-empty",
+        auth_context: %{
+          subject_id: "usr-editor",
+          roles: ["editor"],
+          authenticated: true,
+          policy_context: %{
+            policy_version: "v9",
+            feature_flags: %{}
+          }
+        },
+        payload: %{path: "lib/app.ex", custom_nodes: ["markdown.preview"]}
+      })
+
+    execute_context = %{
+      policy_context: %{
+        policy_version: "v1",
+        feature_flags: %{
+          custom_dsl_nodes: true,
+          custom_node_allowlist: ["markdown.preview"]
+        }
+      }
+    }
+
+    assert {:error, %TypedError{error_code: "policy_custom_node_denied"} = typed_error} =
+             UiOrchestrator.execute(admitted, execute_context)
+
+    assert typed_error.details.policy_version == "v9"
+
+    refute Enum.any?(Telemetry.recent_events(200), fn event ->
+             event.event_name == "ui.dsl.compile.started.v1" and
+               event.correlation_id == "cor-int-policy-feature-empty"
+           end)
+  end
+
   defp admit(overrides) do
     envelope =
       %{
