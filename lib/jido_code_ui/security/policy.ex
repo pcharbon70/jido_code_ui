@@ -191,15 +191,16 @@ defmodule JidoCodeUi.Security.Policy do
   end
 
   defp normalize_feature_flags(policy_context, context) do
-    policy_feature_flags =
-      case policy_context do
-        map when is_map(map) -> get_map(map, :feature_flags)
-        _ -> %{}
-      end
+    cond do
+      has_key?(policy_context, :feature_flags) ->
+        get_map(policy_context, :feature_flags)
 
-    context_feature_flags = get_map(context, :feature_flags)
+      has_key?(context, :feature_flags) ->
+        get_map(context, :feature_flags)
 
-    Map.merge(policy_feature_flags, context_feature_flags)
+      true ->
+        %{}
+    end
   end
 
   defp policy_version(policy_context) do
