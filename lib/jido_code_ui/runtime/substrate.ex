@@ -354,21 +354,38 @@ defmodule JidoCodeUi.Runtime.Substrate do
     policy_context = get_map_or_empty(auth_map, :policy_context)
 
     policy_version =
-      get_key(policy_context, :policy_version) || get_key(auth_map, :policy_version) || "v1"
+      if has_key?(policy_context, :policy_version) do
+        get_key(policy_context, :policy_version)
+      else
+        get_key(auth_map, :policy_version)
+      end
 
     feature_flags =
-      case get_key(policy_context, :feature_flags) do
-        flags when is_map(flags) ->
-          flags
-
-        _ ->
-          get_map_or_empty(auth_map, :feature_flags)
+      if has_key?(policy_context, :feature_flags) do
+        get_map_or_empty(policy_context, :feature_flags)
+      else
+        get_map_or_empty(auth_map, :feature_flags)
       end
 
     policy_context
-    |> Map.put(:policy_version, to_string(policy_version))
+    |> Map.put(:policy_version, normalize_policy_version(policy_version))
     |> Map.put(:feature_flags, feature_flags)
   end
+
+  defp normalize_policy_version(value) when is_binary(value) do
+    trimmed = String.trim(value)
+    if trimmed == "", do: "v1", else: trimmed
+  end
+
+  defp normalize_policy_version(nil), do: "v1"
+
+  defp normalize_policy_version(value) when is_atom(value) do
+    value
+    |> Atom.to_string()
+    |> normalize_policy_version()
+  end
+
+  defp normalize_policy_version(_value), do: "v1"
 
   defp get_boolean(map, key, default) do
     case get_key(map, key) do
