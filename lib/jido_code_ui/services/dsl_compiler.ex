@@ -851,26 +851,40 @@ defmodule JidoCodeUi.Services.DslCompiler do
   end
 
   defp resolve_feature_flags(compile_request, opts) do
-    request_flags =
-      compile_request
-      |> get_map(:policy_decision)
-      |> get_map(:feature_flags)
+    policy_decision = get_map(compile_request, :policy_decision)
+    opts_flags = Keyword.get(opts, :feature_flags)
 
-    direct_flags = get_map(compile_request, :feature_flags)
-    opts_flags = Keyword.get(opts, :feature_flags, %{})
+    cond do
+      has_key?(policy_decision, :feature_flags) ->
+        get_map(policy_decision, :feature_flags)
 
-    request_flags
-    |> Map.merge(direct_flags)
-    |> Map.merge(if(is_map(opts_flags), do: opts_flags, else: %{}))
+      has_key?(compile_request, :feature_flags) ->
+        get_map(compile_request, :feature_flags)
+
+      Keyword.has_key?(opts, :feature_flags) and is_map(opts_flags) ->
+        opts_flags
+
+      Keyword.has_key?(opts, :feature_flags) ->
+        %{}
+
+      true ->
+        %{}
+    end
   end
 
   defp resolve_policy_version(compile_request, opts) do
-    normalize_string(Keyword.get(opts, :policy_version)) ||
-      compile_request
-      |> get_map(:policy_decision)
-      |> get_value(:policy_version)
-      |> normalize_string() ||
-      "v1"
+    policy_decision = get_map(compile_request, :policy_decision)
+
+    cond do
+      has_key?(policy_decision, :policy_version) ->
+        normalize_string(get_value(policy_decision, :policy_version)) || "v1"
+
+      Keyword.has_key?(opts, :policy_version) ->
+        normalize_string(Keyword.get(opts, :policy_version)) || "v1"
+
+      true ->
+        "v1"
+    end
   end
 
   defp continuity_ids(compile_request, opts) do
@@ -977,6 +991,13 @@ defmodule JidoCodeUi.Services.DslCompiler do
   end
 
   defp get_value(_map, _key), do: nil
+
+  defp has_key?(map, key) when is_map(map) do
+    Map.has_key?(map, key) or
+      (is_atom(key) and Map.has_key?(map, Atom.to_string(key)))
+  end
+
+  defp has_key?(_map, _key), do: false
 
   defp nested_value(value, []), do: value
 

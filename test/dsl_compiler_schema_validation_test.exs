@@ -111,6 +111,96 @@ defmodule JidoCodeUi.DslCompilerSchemaValidationTest do
     assert compiled.compile_authority == "server"
   end
 
+  test "compile treats policy decision feature flags as authoritative over conflicting opts" do
+    dsl_with_custom_node =
+      put_in(valid_dsl_document(), [:root, :children], [
+        %{
+          type: "custom.markdown.preview",
+          props: %{"source" => "README.md"}
+        }
+      ])
+
+    assert {:error, %TypedError{error_code: "dsl_custom_node_disallowed"}} =
+             DslCompiler.compile(
+               %{
+                 dsl_document: dsl_with_custom_node,
+                 policy_decision: %{
+                   policy_version: "v9",
+                   feature_flags: %{custom_dsl_nodes: false}
+                 }
+               },
+               feature_flags: %{
+                 custom_dsl_nodes: true,
+                 custom_node_allowlist: ["markdown.preview"]
+               },
+               correlation_id: "cor-dsl-policy-authority",
+               request_id: "req-dsl-policy-authority"
+             )
+  end
+
+  test "compile treats explicit nil policy decision feature flags as authoritative" do
+    dsl_with_custom_node =
+      put_in(valid_dsl_document(), [:root, :children], [
+        %{
+          type: "custom.markdown.preview",
+          props: %{"source" => "README.md"}
+        }
+      ])
+
+    assert {:error, %TypedError{error_code: "dsl_custom_node_disallowed"}} =
+             DslCompiler.compile(
+               %{
+                 dsl_document: dsl_with_custom_node,
+                 policy_decision: %{
+                   policy_version: "v9",
+                   feature_flags: nil
+                 }
+               },
+               feature_flags: %{
+                 custom_dsl_nodes: true,
+                 custom_node_allowlist: ["markdown.preview"]
+               },
+               correlation_id: "cor-dsl-policy-authority-nil",
+               request_id: "req-dsl-policy-authority-nil"
+             )
+  end
+
+  test "compile treats policy decision policy_version as authoritative over opts" do
+    assert {:ok, compiled} =
+             DslCompiler.compile(
+               %{
+                 dsl_document: valid_dsl_document(),
+                 policy_decision: %{
+                   policy_version: "v9",
+                   feature_flags: %{}
+                 }
+               },
+               policy_version: "v1",
+               correlation_id: "cor-dsl-policy-version-authority",
+               request_id: "req-dsl-policy-version-authority"
+             )
+
+    assert compiled.iur_document.metadata["policy_version"] == "v9"
+  end
+
+  test "compile treats explicit nil policy decision policy_version as authoritative" do
+    assert {:ok, compiled} =
+             DslCompiler.compile(
+               %{
+                 dsl_document: valid_dsl_document(),
+                 policy_decision: %{
+                   policy_version: nil,
+                   feature_flags: %{}
+                 }
+               },
+               policy_version: "v9",
+               correlation_id: "cor-dsl-policy-version-authority-nil",
+               request_id: "req-dsl-policy-version-authority-nil"
+             )
+
+    assert compiled.iur_document.metadata["policy_version"] == "v1"
+  end
+
   defp valid_dsl_document do
     %{
       dsl_version: "v1",
