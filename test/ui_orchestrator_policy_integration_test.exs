@@ -166,6 +166,44 @@ defmodule JidoCodeUi.UiOrchestratorPolicyIntegrationTest do
            end)
   end
 
+  test "execute enforces auth-context policy precedence over conflicting execute context" do
+    admitted =
+      admit(%{
+        correlation_id: "cor-int-policy-precedence",
+        request_id: "req-int-policy-precedence",
+        auth_context: %{
+          subject_id: "usr-editor",
+          roles: ["editor"],
+          authenticated: true,
+          policy_context: %{
+            policy_version: "v9",
+            feature_flags: %{custom_dsl_nodes: false}
+          }
+        },
+        payload: %{path: "lib/app.ex", custom_nodes: ["markdown.preview"]}
+      })
+
+    execute_context = %{
+      policy_context: %{
+        policy_version: "v1",
+        feature_flags: %{
+          custom_dsl_nodes: true,
+          custom_node_allowlist: ["markdown.preview"]
+        }
+      }
+    }
+
+    assert {:error, %TypedError{error_code: "policy_custom_node_denied"} = typed_error} =
+             UiOrchestrator.execute(admitted, execute_context)
+
+    assert typed_error.details.policy_version == "v9"
+
+    refute Enum.any?(Telemetry.recent_events(200), fn event ->
+             event.event_name == "ui.dsl.compile.started.v1" and
+               event.correlation_id == "cor-int-policy-precedence"
+           end)
+  end
+
   defp admit(overrides) do
     envelope =
       %{
