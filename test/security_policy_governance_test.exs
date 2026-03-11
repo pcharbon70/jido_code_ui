@@ -204,6 +204,66 @@ defmodule JidoCodeUi.SecurityPolicyGovernanceTest do
              Policy.authorize(context, command)
   end
 
+  test "authorize treats policy_context feature flags as authoritative over top-level overrides" do
+    context = %{
+      correlation_id: "cor-pol-feature-authority",
+      request_id: "req-pol-feature-authority",
+      auth_context: %{
+        subject_id: "svc-orchestrator",
+        actor_type: "service",
+        roles: ["editor"],
+        authenticated: true
+      },
+      policy_context: %{
+        policy_version: "v1",
+        feature_flags: %{custom_dsl_nodes: false}
+      },
+      feature_flags: %{
+        custom_dsl_nodes: true,
+        custom_node_allowlist: ["markdown.preview"]
+      }
+    }
+
+    command =
+      UiCommand.new(%{
+        command_type: "save_file",
+        payload: %{custom_nodes: ["markdown.preview"]}
+      })
+
+    assert {:error, %TypedError{error_code: "policy_custom_node_denied"}} =
+             Policy.authorize(context, command)
+  end
+
+  test "authorize treats explicit invalid policy_context feature_flags as authoritative" do
+    context = %{
+      correlation_id: "cor-pol-feature-invalid-authority",
+      request_id: "req-pol-feature-invalid-authority",
+      auth_context: %{
+        subject_id: "svc-orchestrator",
+        actor_type: "service",
+        roles: ["editor"],
+        authenticated: true
+      },
+      policy_context: %{
+        policy_version: "v1",
+        feature_flags: nil
+      },
+      feature_flags: %{
+        custom_dsl_nodes: true,
+        custom_node_allowlist: ["markdown.preview"]
+      }
+    }
+
+    command =
+      UiCommand.new(%{
+        command_type: "save_file",
+        payload: %{custom_nodes: ["markdown.preview"]}
+      })
+
+    assert {:error, %TypedError{error_code: "policy_custom_node_denied"}} =
+             Policy.authorize(context, command)
+  end
+
   test "authorize allows custom nodes when flag and allowlist permit execution" do
     context = %{
       correlation_id: "cor-pol-custom-allow",
