@@ -102,17 +102,8 @@ defmodule JidoCodeUi.Services.IurRenderer do
 
   defp normalize_render_request(render_request, continuity, route_key) do
     compile_result = get_map(render_request, :compile_result)
-
-    iur_document =
-      first_non_empty_map([
-        get_map(compile_result, :iur_document),
-        get_map(render_request, :iur_document),
-        get_map(render_request, :iur)
-      ])
-
-    iur_version =
-      normalize_string(get_value(compile_result, :iur_version)) ||
-        normalize_string(get_value(render_request, :iur_version)) || @iur_version
+    iur_document = resolve_iur_document(render_request, compile_result)
+    iur_version = resolve_iur_version(render_request, compile_result)
 
     session_snapshot = get_map(render_request, :session_snapshot)
     session_id = normalize_string(get_value(session_snapshot, :session_id))
@@ -550,6 +541,32 @@ defmodule JidoCodeUi.Services.IurRenderer do
     Enum.find(maps, %{}, fn map -> is_map(map) and map != %{} end)
   end
 
+  defp resolve_iur_document(render_request, compile_result) do
+    cond do
+      has_key?(compile_result, :iur_document) ->
+        get_map(compile_result, :iur_document)
+
+      true ->
+        first_non_empty_map([
+          get_map(render_request, :iur_document),
+          get_map(render_request, :iur)
+        ])
+    end
+  end
+
+  defp resolve_iur_version(render_request, compile_result) do
+    cond do
+      has_key?(compile_result, :iur_version) ->
+        normalize_string(get_value(compile_result, :iur_version))
+
+      has_key?(render_request, :iur_version) ->
+        normalize_string(get_value(render_request, :iur_version))
+
+      true ->
+        @iur_version
+    end
+  end
+
   defp normalize_string(value) when is_binary(value) do
     trimmed = String.trim(value)
     if trimmed == "", do: nil, else: trimmed
@@ -576,6 +593,13 @@ defmodule JidoCodeUi.Services.IurRenderer do
   end
 
   defp get_value(_map, _key), do: nil
+
+  defp has_key?(map, key) when is_map(map) do
+    Map.has_key?(map, key) or
+      (is_atom(key) and Map.has_key?(map, Atom.to_string(key)))
+  end
+
+  defp has_key?(_map, _key), do: false
 
   defp get_map(map, key) when is_map(map) do
     case get_value(map, key) do
